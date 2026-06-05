@@ -1,13 +1,8 @@
-// ── Firebase Config ──────────────────────────────────────
-// Replace ALL values below with your own Firebase project config.
-// Find them in: Firebase Console → Project Settings → Your Apps → Web App
-// ─────────────────────────────────────────────────────────
-
 const FIREBASE_CONFIG = {
-  apiKey:            "REPLACE_WITH_YOUR_API_KEY",
-  authDomain:        "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket:     "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId:             "REPLACE_WITH_YOUR_APP_ID"
+  apiKey: "AIzaSyB15JiXLdI4I1VVfHoUfhL1gpu1PXYVwDk",
+  authDomain: "np-spelling.firebaseapp.com",
+  projectId: "np-spelling",
+  storageBucket: "np-spelling.firebasestorage.app",
+  messagingSenderId: "851912392138",
+  appId: "1:851912392138:web:00a05429221b497f0c6333"
 };
