@@ -310,10 +310,10 @@ button { cursor: pointer; }
 .phonics-chunk {
   border: 0;
   border-radius: 14px;
-  padding: 9px 16px;
+  padding: 10px 18px;
   color: white;
   background: #ff6b6b;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   font-weight: 700;
 }
 .chunk-2 { background: #4ecdc4; }
@@ -321,7 +321,7 @@ button { cursor: pointer; }
 .chunk-4 { background: #ff8b94; }
 
 /* ── Activity screen ── */
-.activity-body { flex: 1; display: grid; place-items: center; padding-bottom: 28px; }
+.activity-body { flex: 1; display: grid; place-items: start; padding-top: 24px; padding-bottom: 28px; }
 .activity-card-large {
   width: min(760px, 100%);
   padding: clamp(24px, 5vw, 44px);
@@ -354,6 +354,7 @@ button { cursor: pointer; }
   text-align: center;
   font-family: Arial, sans-serif;
 }
+.hw-answer-input::placeholder { color: #3d2000; opacity: 1; }
 .hw-answer-input:focus, .word-input:focus { border-color: #ff6b6b; }
 .hw-feedback {
   min-height: 32px;
