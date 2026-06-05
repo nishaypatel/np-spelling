@@ -1,37 +1,44 @@
+// ── Family Groups ─────────────────────────────────────────
+const FAMILY_MAP = {
+  'nishaypatel@gmail.com':   'patel-family',
+  'prinapatel1097@gmail.com': 'patel-family',
+};
+
+const ALLOWED_EMAILS = Object.keys(FAMILY_MAP);
+
 // ── App State ─────────────────────────────────────────────
 const STATE = {
   user: null,
-  db: null,
+  familyId: null,
   currentWeekId: null,
   words: [],
-  wordData: {},   // phonics chunks, sentences, wrong versions per word
+  wordData: {},
   theme: 'lionking',
-  results: [],    // { word, activity, correct, timestamp }
+  results: [],
 };
 
 const THEMES = [
-  { id: 'lionking',   name: 'Lion King',          emoji: '🦁' },
-  { id: 'kpop',       name: 'K-Pop Demon Hunters', emoji: '⚔️' },
-  { id: 'airplanes',  name: 'Airplanes',           emoji: '✈️' },
-  { id: 'cars',       name: 'Cars',                emoji: '🏎️' },
-  { id: 'dinosaurs',  name: 'Dinosaurs',           emoji: '🦕' },
-  { id: 'space',      name: 'Space',               emoji: '🚀' },
-  { id: 'football',   name: 'Football',            emoji: '⚽' },
+  { id: 'lionking',   name: 'Lion King',           emoji: '🦁' },
+  { id: 'kpop',       name: 'K-Pop Demon Hunters',  emoji: '⚔️' },
+  { id: 'airplanes',  name: 'Airplanes',            emoji: '✈️' },
+  { id: 'cars',       name: 'Cars',                 emoji: '🏎️' },
+  { id: 'dinosaurs',  name: 'Dinosaurs',            emoji: '🦕' },
+  { id: 'space',      name: 'Space',                emoji: '🚀' },
+  { id: 'football',   name: 'Football',             emoji: '⚽' },
 ];
 
 // ── Firebase Init ──────────────────────────────────────────
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.firestore();
-STATE.db   = db;
 
-// ── Week ID (Monday-based) ────────────────────────────────
+// ── Week ID ───────────────────────────────────────────────
 function getWeekId() {
   const now  = new Date();
-  const day  = now.getDay(); // 0=Sun
+  const day  = now.getDay();
   const diff = now.getDate() - day + (day === 0 ? -6 : 1);
   const mon  = new Date(now.setDate(diff));
-  return mon.toISOString().slice(0, 10); // e.g. 2026-06-09
+  return mon.toISOString().slice(0, 10);
 }
 
 // ── Screen Router ─────────────────────────────────────────
@@ -53,7 +60,6 @@ function applyTheme(themeId) {
   const body = document.body;
   THEMES.forEach(t => body.classList.remove('theme-' + t.id));
   body.classList.add('theme-' + themeId);
-  // Update mascot emojis
   const t = THEMES.find(x => x.id === themeId);
   if (t) {
     document.querySelectorAll('.login-mascot, .header-mascot, .results-mascot')
@@ -63,22 +69,22 @@ function applyTheme(themeId) {
 
 async function saveTheme(themeId) {
   applyTheme(themeId);
-  if (STATE.user) {
-    await db.collection('users').doc(STATE.user.uid)
+  if (STATE.familyId) {
+    await db.collection('families').doc(STATE.familyId)
       .collection('settings').doc('prefs')
       .set({ theme: themeId }, { merge: true });
   }
 }
 
 async function loadTheme() {
-  if (!STATE.user) return;
+  if (!STATE.familyId) return;
   try {
-    const doc = await db.collection('users').doc(STATE.user.uid)
+    const doc = await db.collection('families').doc(STATE.familyId)
       .collection('settings').doc('prefs').get();
     if (doc.exists && doc.data().theme) {
       applyTheme(doc.data().theme);
     }
-  } catch (e) { /* use default */ }
+  } catch (e) {}
 }
 
 // ── Toast ─────────────────────────────────────────────────
@@ -104,13 +110,15 @@ auth.onAuthStateChanged(async user => {
       showScreen('screen-login');
       return;
     }
-    STATE.user = user;
+    STATE.user     = user;
+    STATE.familyId = FAMILY_MAP[email];
     await loadTheme();
     await loadCurrentWeek();
     renderHome();
     showScreen('screen-home');
   } else {
-    STATE.user = null;
+    STATE.user     = null;
+    STATE.familyId = null;
     showScreen('screen-login');
   }
 });
@@ -129,7 +137,7 @@ async function loadCurrentWeek() {
   const weekId = getWeekId();
   STATE.currentWeekId = weekId;
   try {
-    const doc = await db.collection('users').doc(STATE.user.uid)
+    const doc = await db.collection('families').doc(STATE.familyId)
       .collection('weeks').doc(weekId).get();
     if (doc.exists) {
       STATE.words    = doc.data().words    || [];
@@ -146,7 +154,7 @@ async function loadCurrentWeek() {
 async function saveWords(words, wordData) {
   STATE.words    = words;
   STATE.wordData = wordData;
-  await db.collection('users').doc(STATE.user.uid)
+  await db.collection('families').doc(STATE.familyId)
     .collection('weeks').doc(STATE.currentWeekId)
     .set({ words, wordData, created: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 }
@@ -156,7 +164,7 @@ async function saveResult(word, activity, correct) {
   const result = { word, activity, correct, timestamp: Date.now() };
   STATE.results.push(result);
   try {
-    await db.collection('users').doc(STATE.user.uid)
+    await db.collection('families').doc(STATE.familyId)
       .collection('weeks').doc(STATE.currentWeekId)
       .collection('results').add({
         ...result,
@@ -191,7 +199,6 @@ function renderHome() {
     grid.classList.add('hidden');
   }
 
-  // Update mascot emoji
   const t = THEMES.find(x => x.id === STATE.theme);
   if (t) {
     const hm = document.getElementById('home-mascot');
@@ -259,7 +266,6 @@ document.getElementById('btn-save-words').addEventListener('click', async () => 
     showToast('Words saved! Ready to practise 🎉');
   } catch (e) {
     console.error(e);
-    // Fallback: save words with basic data
     const basicData = {};
     words.forEach(w => {
       basicData[w] = {
@@ -279,7 +285,7 @@ document.getElementById('btn-save-words').addEventListener('click', async () => 
   }
 });
 
-// ── Generate Word Data via Claude API ─────────────────────
+// ── Generate Word Data ────────────────────────────────────
 async function generateWordData(words) {
   const res = await fetch('/api/generate-word-data', {
     method: 'POST',
@@ -318,7 +324,7 @@ async function renderDashboard() {
   body.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p class="loading-text">Loading progress...</p></div>';
 
   try {
-    const snap = await db.collection('users').doc(STATE.user.uid)
+    const snap = await db.collection('families').doc(STATE.familyId)
       .collection('weeks').doc(STATE.currentWeekId)
       .collection('results').orderBy('timestamp', 'desc').get();
 
@@ -329,7 +335,6 @@ async function renderDashboard() {
       return;
     }
 
-    // Aggregate per word
     const stats = {};
     STATE.words.forEach(w => { stats[w] = { correct: 0, total: 0 }; });
     allResults.forEach(r => {
