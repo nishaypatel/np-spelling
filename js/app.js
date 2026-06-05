@@ -129,29 +129,9 @@ document.getElementById('btn-signout').addEventListener('click', () => {
 
 // ── Load / Save Words ─────────────────────────────────────
 async function loadCurrentWeek() {
-  const weekId = getWeekId();
-  STATE.currentWeekId = weekId;
-  try {
-    const doc = await db.collection('families').doc(STATE.familyId)
-      .collection('weeks').doc(weekId).get();
-    if (doc.exists) {
-      STATE.words    = doc.data().words    || [];
-      STATE.wordData = doc.data().wordData || {};
-    } else {
-      STATE.words    = [];
-      STATE.wordData = {};
-    }
-  } catch (e) {
-    console.error('loadCurrentWeek', e);
-  }
-}
-
-async function saveWords(words, wordData) {
-  STATE.words    = words;
-  STATE.wordData = wordData;
-  await db.collection('families').doc(STATE.familyId)
-    .collection('weeks').doc(STATE.currentWeekId)
-    .set({ words, wordData, created: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  STATE.currentWeekId = WEEK_WORDS.weekId;
+  STATE.words         = WEEK_WORDS.words;
+  STATE.wordData      = WEEK_WORDS.wordData;
 }
 
 // ── Save Result ───────────────────────────────────────────
@@ -170,7 +150,6 @@ async function saveResult(word, activity, correct) {
 
 // ── Home Screen ───────────────────────────────────────────
 function renderHome() {
-  const noWords   = document.getElementById('no-words-notice');
   const grid      = document.getElementById('activity-grid');
   const chips     = document.getElementById('word-chips');
   const weekLabel = document.getElementById('header-week-label');
@@ -181,7 +160,6 @@ function renderHome() {
 
   chips.innerHTML = '';
   if (STATE.words.length > 0) {
-    noWords.classList.add('hidden');
     grid.classList.remove('hidden');
     STATE.words.forEach(w => {
       const chip = document.createElement('div');
@@ -190,7 +168,6 @@ function renderHome() {
       chips.appendChild(chip);
     });
   } else {
-    noWords.classList.remove('hidden');
     grid.classList.add('hidden');
   }
 
@@ -199,96 +176,6 @@ function renderHome() {
     const hm = document.getElementById('home-mascot');
     if (hm) hm.textContent = t.emoji;
   }
-}
-
-// ── Word Entry Screen ─────────────────────────────────────
-function renderWordEntry() {
-  const grid = document.getElementById('word-entry-grid');
-  grid.innerHTML = '';
-  for (let i = 0; i < 8; i++) {
-    const item = document.createElement('div');
-    item.className = 'word-entry-item';
-    item.innerHTML = `
-      <label class="word-entry-label">Word ${i + 1}</label>
-      <input class="word-input" type="text" inputmode="text"
-             autocorrect="off" autocapitalize="off" spellcheck="false"
-             placeholder="word ${i + 1}"
-             value="${(STATE.words[i] || '')}">
-    `;
-    grid.appendChild(item);
-  }
-  document.getElementById('entry-status').classList.add('hidden');
-}
-
-document.getElementById('btn-enter-words').addEventListener('click', () => {
-  renderWordEntry();
-  showScreen('screen-word-entry');
-});
-
-document.getElementById('btn-goto-enter').addEventListener('click', () => {
-  renderWordEntry();
-  showScreen('screen-word-entry');
-});
-
-document.getElementById('btn-back-from-entry').addEventListener('click', () => {
-  renderHome();
-  showScreen('screen-home');
-});
-
-document.getElementById('btn-save-words').addEventListener('click', async () => {
-  const inputs = document.querySelectorAll('.word-input');
-  const words  = Array.from(inputs)
-    .map(i => i.value.trim().toLowerCase())
-    .filter(w => w.length > 0);
-
-  if (words.length < 4) {
-    showToast('Please enter at least 4 words');
-    return;
-  }
-
-  const btn    = document.getElementById('btn-save-words');
-  const status = document.getElementById('entry-status');
-  btn.disabled = true;
-  btn.textContent = 'Generating... ✨';
-  status.textContent = '🤖 Claude is creating phonics breakdowns and activities...';
-  status.classList.remove('hidden');
-
-  try {
-    const wordData = await generateWordData(words);
-    await saveWords(words, wordData);
-    renderHome();
-    showScreen('screen-home');
-    showToast('Words saved! Ready to practise 🎉');
-  } catch (e) {
-    console.error(e);
-    const basicData = {};
-    words.forEach(w => {
-      basicData[w] = {
-        chunks: [w],
-        sentence: `Can you spell ${w}?`,
-        trickyPart: '',
-        wrongVersions: [w.slice(0,-1) + 'x', w[0] + w.slice(2)]
-      };
-    });
-    await saveWords(words, basicData);
-    renderHome();
-    showScreen('screen-home');
-    showToast('Words saved (basic mode — check API key)');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Save & Generate ✨';
-  }
-});
-
-// ── Generate Word Data ────────────────────────────────────
-async function generateWordData(words) {
-  const res = await fetch('/api/generate-word-data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ words })
-  });
-  if (!res.ok) throw new Error('API error ' + res.status);
-  return await res.json();
 }
 
 // ── Activity Routing ──────────────────────────────────────
