@@ -400,7 +400,6 @@ button { cursor: pointer; }
   font-weight: 700;
   color: #1a1a2e;
 }
-.look-cover-word.covered { color: transparent; text-shadow: 0 0 14px rgba(0,0,0,0.3); }
 .chunk-bank, .tap-word, .fix-options { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin: 18px 0; }
 .build-target {
   min-height: 64px;
@@ -494,6 +493,23 @@ button { cursor: pointer; }
 
 /* ── Settings ── */
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.settings-voice-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.settings-voice-row > div { flex: 1; min-width: 140px; }
+.settings-voice-try { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 700; color: #3d2000; }
+.game-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 10px;
+}
+.game-toggle-grid .theme-card { aspect-ratio: 1 / 1; }
+.game-toggle-grid .theme-card.active { outline: none; border-color: #ffd166; background: #fff3e0; }
 .theme-card, .segment {
   border: 2px solid #ffd166;
   background: #ffffff;

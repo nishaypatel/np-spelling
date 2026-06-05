@@ -117,7 +117,7 @@ function autoDetectPatterns(word) {
 }
 
 function normaliseSettings(raw = {}) {
-  const visible = Array.isArray(raw.visibleGames) && raw.visibleGames.length ? raw.visibleGames : DEFAULT_VISIBLE_GAMES;
+  const visible = Array.isArray(raw.visibleGames) ? raw.visibleGames : DEFAULT_VISIBLE_GAMES;
   return {
     ...DEFAULT_SETTINGS,
     ...raw,
@@ -361,6 +361,30 @@ async function resetProgressWithConfirm() {
 }
 
 function renderSettings() {
+  qs('settings-body').innerHTML = `
+    <section class="settings-card apple-card">
+      <h2>Theme selector</h2>
+      <div class="theme-grid" id="theme-grid"></div>
+    </section>
+    <section class="settings-card apple-card">
+      <h2>Voice</h2>
+      <div class="settings-voice-row">
+        <div>
+          <h3>Voice</h3>
+          <div class="segmented" id="voice-gender-options"></div>
+        </div>
+        <div>
+          <h3>Speed</h3>
+          <div class="segmented" id="speech-rate-options"></div>
+        </div>
+      </div>
+      <div class="settings-voice-try"><span>Test your voice</span><button class="btn btn-secondary" id="btn-try-voice">🔊 Try voice</button></div>
+    </section>
+    <section class="settings-card apple-card">
+      <h2>Practice Games Shown</h2>
+      <div class="game-toggle-grid" id="game-toggle-list"></div>
+    </section>`;
+
   const themeGrid = qs('theme-grid');
   themeGrid.innerHTML = THEMES.map(theme => `<button class="theme-card ${theme.id === STATE.settings.theme ? 'active' : ''}" data-theme="${theme.id}"><span>${theme.emoji}</span><b>${theme.name}</b></button>`).join('');
   themeGrid.querySelectorAll('[data-theme]').forEach(btn => btn.addEventListener('click', async () => { await saveSettings({ theme: btn.dataset.theme }); renderSettings(); showToast('Theme saved!'); }));
@@ -379,16 +403,12 @@ function renderSettings() {
     const voiceLabel = STATE.settings.voiceGender === 'male' ? 'male' : 'female';
     TTS.speak(`Hello, I am the ${voiceLabel} voice for Spell Squad`, STATE.settings.speechRate, 1.05);
   };
-  const allToggle = qs('toggle-all-games');
-  allToggle.checked = STATE.settings.visibleGames.length === GAME_CATALOG.length;
-  allToggle.onchange = async () => {
-    await saveSettings({ visibleGames: allToggle.checked ? GAME_CATALOG.map(g => g.id) : DEFAULT_VISIBLE_GAMES });
-    renderSettings();
-  };
-  qs('game-toggle-list').innerHTML = GAME_CATALOG.map(game => `<label class="toggle-row"><span>${game.emoji} ${game.name}</span><input type="checkbox" data-game-toggle="${game.id}" ${STATE.settings.visibleGames.includes(game.id) ? 'checked' : ''}></label>`).join('');
-  qs('game-toggle-list').querySelectorAll('[data-game-toggle]').forEach(input => input.addEventListener('change', async () => {
-    const visibleGames = GAME_CATALOG.filter(game => qs('game-toggle-list').querySelector(`[data-game-toggle="${game.id}"]`).checked).map(game => game.id);
-    await saveSettings({ visibleGames: visibleGames.length ? visibleGames : DEFAULT_VISIBLE_GAMES });
+  qs('game-toggle-list').innerHTML = GAME_CATALOG.map(game => `<button class="theme-card ${STATE.settings.visibleGames.includes(game.id) ? 'active' : ''}" data-game-toggle="${game.id}"><span>${game.emoji}</span><b>${game.name}</b></button>`).join('');
+  qs('game-toggle-list').querySelectorAll('[data-game-toggle]').forEach(tile => tile.addEventListener('click', async () => {
+    const visibleGames = STATE.settings.visibleGames.includes(tile.dataset.gameToggle)
+      ? STATE.settings.visibleGames.filter(id => id !== tile.dataset.gameToggle)
+      : [...STATE.settings.visibleGames, tile.dataset.gameToggle];
+    await saveSettings({ visibleGames });
     renderSettings();
   }));
 }
