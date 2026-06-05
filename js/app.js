@@ -91,8 +91,19 @@ function showToast(msg, duration = 2500) {
 }
 
 // ── Auth ──────────────────────────────────────────────────
+const ALLOWED_EMAILS = [
+  'nishaypatel@gmail.com',
+  'prinapatel1097@gmail.com',
+];
+
 auth.onAuthStateChanged(async user => {
   if (user) {
+    if (!ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+      await auth.signOut();
+      showToast('Sorry, you are not authorised to use this app.');
+      showScreen('screen-login');
+      return;
+    }
     STATE.user = user;
     await loadTheme();
     await loadCurrentWeek();
