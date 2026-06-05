@@ -1,7 +1,19 @@
 .theme-rainbow {
-  --bg: #f7f8ff;
-  --bg-pattern: radial-gradient(circle at 12% 14%, #ffcfec 0 16%, transparent 28%), radial-gradient(circle at 88% 12%, #b8e7ff 0 14%, transparent 28%), radial-gradient(circle at 50% 94%, #fff0a8 0 18%, transparent 35%);
-  --accent: #5b6cff; --accent-dark: #3544d4; --chunk1: #5b6cff; --chunk2: #ff6fb1; --chunk3: #13b8a7; --chunk4: #ff9f1c;
+  --bg: #fff9f0;
+  --bg-pattern: none;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --header-bg: #ffd166;
+  --border: #ffd166;
+  --text: #1a1a2e;
+  --text-muted: #3d2000;
+  --accent: #ff6b6b;
+  --accent-dark: #e05252;
+  --accent-text: #ffffff;
+  --chunk1: #ff6b6b;
+  --chunk2: #4ecdc4;
+  --chunk3: #d4a017;
+  --chunk4: #ff9f1c;
 }
 .theme-ocean {
   --bg: #e8f8ff; --bg-pattern: radial-gradient(circle at 15% 20%, #b9f3ff 0 18%, transparent 32%), radial-gradient(circle at 90% 75%, #b6ffdf 0 18%, transparent 32%);
