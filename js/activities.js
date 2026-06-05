@@ -193,7 +193,6 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
         <p class="eyebrow">${intro}</p>
         ${preReveal ? preReveal.replaceAll('{{word}}', escapeHtml(word)) : ''}
         <button class="hw-play-btn" id="play-word">🔊</button>
-        <button class="btn btn-soft" id="say-slowly">🐢 Say it slowly</button>
         ${noPeek ? '' : phonicsHtml(word, false)}
         <div class="hw-input-wrap">
           <input class="hw-answer-input" id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${placeholder}">
@@ -204,7 +203,6 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
     const target = sentenceMode ? data.sentence : word;
     setTimeout(() => sentenceMode ? TTS.speak(data.sentence, STATE.settings.speechRate, 1.0) : TTS.sayWord(word, data), 250);
     document.getElementById('play-word').onclick = () => sentenceMode ? TTS.speak(data.sentence, STATE.settings.speechRate, 1.0) : TTS.sayWord(word, data);
-    document.getElementById('say-slowly').onclick = () => TTS.saySlowly(word);
     const input = document.getElementById('answer-input');
     input.focus();
     const check = () => {
