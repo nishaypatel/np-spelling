@@ -1,163 +1,22 @@
-/* ══════════════════════════════════════════
-   SPELLING STARS — THEMES
-   Each theme sets CSS variables used by base.css
-   ══════════════════════════════════════════ */
-
-/* ── LION KING (default) ── */
-.theme-lionking {
-  --bg: #fdf6e3;
-  --bg-pattern: radial-gradient(circle at 20% 80%, #fde68a33 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, #fb923c22 0%, transparent 50%);
-  --surface: #fffbf0;
-  --header-bg: rgba(253, 246, 227, 0.9);
-  --border: #f0d090;
-  --text: #3d2b00;
-  --text-muted: #a07840;
-  --accent: #e67e00;
-  --accent-dark: #b35f00;
-  --accent-text: #ffffff;
-  --chunk1: #e67e00;
-  --chunk2: #c0392b;
-  --chunk3: #8b5e00;
-  --chunk4: #d35400;
-  --mascot: "🦁";
-  --mascot-well: "🌟";
-  --mascot-celebrate: "👑";
+.theme-rainbow {
+  --bg: #f7f8ff;
+  --bg-pattern: radial-gradient(circle at 12% 14%, #ffcfec 0 16%, transparent 28%), radial-gradient(circle at 88% 12%, #b8e7ff 0 14%, transparent 28%), radial-gradient(circle at 50% 94%, #fff0a8 0 18%, transparent 35%);
+  --accent: #5b6cff; --accent-dark: #3544d4; --chunk1: #5b6cff; --chunk2: #ff6fb1; --chunk3: #13b8a7; --chunk4: #ff9f1c;
 }
-
-/* ── K-POP DEMON HUNTERS ── */
-.theme-kpop {
-  --bg: #0f0520;
-  --bg-pattern: radial-gradient(circle at 30% 70%, #7c3aed33 0%, transparent 50%),
-                radial-gradient(circle at 70% 30%, #ec489944 0%, transparent 50%);
-  --surface: #1a0b35;
-  --header-bg: rgba(15, 5, 32, 0.92);
-  --border: #4c1d95;
-  --text: #f0e6ff;
-  --text-muted: #a78bda;
-  --accent: #c026d3;
-  --accent-dark: #86198f;
-  --accent-text: #ffffff;
-  --chunk1: #7c3aed;
-  --chunk2: #c026d3;
-  --chunk3: #0ea5e9;
-  --chunk4: #ec4899;
-  --mascot: "⚔️";
-  --mascot-well: "✨";
-  --mascot-celebrate: "🌸";
+.theme-ocean {
+  --bg: #e8f8ff; --bg-pattern: radial-gradient(circle at 15% 20%, #b9f3ff 0 18%, transparent 32%), radial-gradient(circle at 90% 75%, #b6ffdf 0 18%, transparent 32%);
+  --accent: #0284c7; --accent-dark: #075985; --chunk1: #0284c7; --chunk2: #06b6d4; --chunk3: #10b981; --chunk4: #6366f1;
 }
-
-/* ── AIRPLANES ── */
-.theme-airplanes {
-  --bg: #e0f2fe;
-  --bg-pattern: radial-gradient(circle at 15% 85%, #bae6fd55 0%, transparent 50%),
-                radial-gradient(circle at 85% 15%, #e0f7fa44 0%, transparent 50%);
-  --surface: #f0f9ff;
-  --header-bg: rgba(224, 242, 254, 0.9);
-  --border: #7dd3fc;
-  --text: #0c3654;
-  --text-muted: #3b82a0;
-  --accent: #0284c7;
-  --accent-dark: #01578a;
-  --accent-text: #ffffff;
-  --chunk1: #0284c7;
-  --chunk2: #0ea5e9;
-  --chunk3: #06b6d4;
-  --chunk4: #2563eb;
-  --mascot: "✈️";
-  --mascot-well: "🌤️";
-  --mascot-celebrate: "🎖️";
+.theme-jungle {
+  --bg: #f0fff4; --bg-pattern: radial-gradient(circle at 15% 80%, #bbf7d0 0 18%, transparent 32%), radial-gradient(circle at 82% 18%, #fef08a 0 15%, transparent 30%);
+  --accent: #16a34a; --accent-dark: #166534; --chunk1: #16a34a; --chunk2: #84cc16; --chunk3: #ea580c; --chunk4: #0d9488;
 }
-
-/* ── CARS ── */
-.theme-cars {
-  --bg: #1a1a2e;
-  --bg-pattern: radial-gradient(circle at 20% 50%, #dc262622 0%, transparent 50%),
-                radial-gradient(circle at 80% 50%, #f59e0b22 0%, transparent 50%);
-  --surface: #16213e;
-  --header-bg: rgba(26, 26, 46, 0.93);
-  --border: #374151;
-  --text: #f9fafb;
-  --text-muted: #9ca3af;
-  --accent: #ef4444;
-  --accent-dark: #b91c1c;
-  --accent-text: #ffffff;
-  --chunk1: #ef4444;
-  --chunk2: #f59e0b;
-  --chunk3: #3b82f6;
-  --chunk4: #10b981;
-  --mascot: "🏎️";
-  --mascot-well: "🏁";
-  --mascot-celebrate: "🏆";
-}
-
-/* ── DINOSAURS ── */
-.theme-dinosaurs {
-  --bg: #f0fdf4;
-  --bg-pattern: radial-gradient(circle at 25% 75%, #bbf7d055 0%, transparent 50%),
-                radial-gradient(circle at 75% 25%, #d9f99d44 0%, transparent 50%);
-  --surface: #f7fef9;
-  --header-bg: rgba(240, 253, 244, 0.9);
-  --border: #86efac;
-  --text: #14532d;
-  --text-muted: #4d7c5f;
-  --accent: #16a34a;
-  --accent-dark: #0f6830;
-  --accent-text: #ffffff;
-  --chunk1: #16a34a;
-  --chunk2: #84cc16;
-  --chunk3: #ea580c;
-  --chunk4: #0d9488;
-  --mascot: "🦕";
-  --mascot-well: "🌿";
-  --mascot-celebrate: "🦖";
-}
-
-/* ── SPACE ── */
 .theme-space {
-  --bg: #030712;
-  --bg-pattern: radial-gradient(circle at 50% 50%, #1e1b4b44 0%, transparent 70%),
-                radial-gradient(circle at 10% 90%, #3730a333 0%, transparent 40%);
-  --surface: #0f172a;
-  --header-bg: rgba(3, 7, 18, 0.93);
-  --border: #1e3a5f;
-  --text: #e2e8f0;
-  --text-muted: #64748b;
-  --accent: #818cf8;
-  --accent-dark: #4f46e5;
-  --accent-text: #ffffff;
-  --chunk1: #818cf8;
-  --chunk2: #c084fc;
-  --chunk3: #34d399;
-  --chunk4: #38bdf8;
-  --mascot: "🚀";
-  --mascot-well: "⭐";
-  --mascot-celebrate: "🌠";
+  --bg: #12142c; --bg-pattern: radial-gradient(circle at 18% 22%, #818cf855 0 8%, transparent 20%), radial-gradient(circle at 82% 12%, #f0abfc44 0 12%, transparent 24%), radial-gradient(circle at 50% 95%, #38bdf844 0 18%, transparent 35%);
+  --surface: rgba(24, 28, 62, .78); --surface-strong: #20264f; --header-bg: rgba(18,20,44,.74); --border: rgba(255,255,255,.13); --text: #f8fafc; --text-muted: #c4cae5;
+  --accent: #818cf8; --accent-dark: #4f46e5; --chunk1: #818cf8; --chunk2: #c084fc; --chunk3: #34d399; --chunk4: #38bdf8;
 }
-
-/* ── FOOTBALL ── */
 .theme-football {
-  --bg: #f0fdf4;
-  --bg-pattern: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 60px,
-    #dcfce733 60px,
-    #dcfce733 120px
-  );
-  --surface: #ffffff;
-  --header-bg: rgba(240, 253, 244, 0.92);
-  --border: #4ade80;
-  --text: #14532d;
-  --text-muted: #4d7c5f;
-  --accent: #15803d;
-  --accent-dark: #0f5223;
-  --accent-text: #ffffff;
-  --chunk1: #15803d;
-  --chunk2: #1d4ed8;
-  --chunk3: #dc2626;
-  --chunk4: #d97706;
-  --mascot: "⚽";
-  --mascot-well: "🥅";
-  --mascot-celebrate: "🏆";
+  --bg: #effdf4; --bg-pattern: repeating-linear-gradient(0deg, transparent, transparent 58px, #dcfce766 58px, #dcfce766 116px);
+  --accent: #15803d; --accent-dark: #14532d; --chunk1: #15803d; --chunk2: #1d4ed8; --chunk3: #dc2626; --chunk4: #d97706;
 }
