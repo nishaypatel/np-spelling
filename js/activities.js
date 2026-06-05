@@ -1,7 +1,77 @@
 // ── Text-to-Speech ─────────────────────────────────────────
+const FEMALE_VOICE_NAMES = [
+  'Samantha', 'Serena', 'Karen', 'Moira', 'Tessa', 'Kate', 'Susan',
+  'Victoria', 'Zoe', 'Ava', 'Allison', 'Fiona', 'Veena', 'Martha', 'Hazel',
+];
+const MALE_VOICE_NAMES = [
+  'Daniel', 'Alex', 'Oliver', 'Arthur', 'Fred', 'Tom', 'Rishi', 'George', 'Thomas',
+];
+
+function voiceNameIncludes(voice, names) {
+  const voiceName = String(voice?.name || '').toLowerCase();
+  return names.some(name => voiceName.includes(name.toLowerCase()));
+}
+
+function isEnglishVoice(voice) {
+  return String(voice?.lang || '').toLowerCase().startsWith('en');
+}
+
+function isBritishEnglishVoice(voice) {
+  return String(voice?.lang || '').toLowerCase() === 'en-gb';
+}
+
+function isClearlyFemaleVoice(voice) {
+  return voiceNameIncludes(voice, FEMALE_VOICE_NAMES) && !voiceNameIncludes(voice, MALE_VOICE_NAMES);
+}
+
+function isClearlyMaleVoice(voice) {
+  return voiceNameIncludes(voice, MALE_VOICE_NAMES) && !voiceNameIncludes(voice, FEMALE_VOICE_NAMES);
+}
+
+function waitForVoicesChanged(timeout = 180) {
+  return new Promise(resolve => {
+    if (window.speechSynthesis.addEventListener) {
+      const timer = setTimeout(() => {
+        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+        resolve();
+      }, timeout);
+      const onVoicesChanged = () => {
+        clearTimeout(timer);
+        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+        resolve();
+      };
+      window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+      return;
+    }
+    setTimeout(resolve, timeout);
+  });
+}
+
+async function getVoicesWithRetry() {
+  let voices = window.speechSynthesis.getVoices();
+  for (let attempt = 0; attempt < 4 && voices.length === 0; attempt++) {
+    await waitForVoicesChanged(180);
+    voices = window.speechSynthesis.getVoices();
+  }
+  return voices;
+}
+
+function chooseVoice(voices, genderSetting) {
+  const englishVoices = voices.filter(isEnglishVoice);
+  const requestedGenderVoices = genderSetting === 'male'
+    ? englishVoices.filter(isClearlyMaleVoice)
+    : englishVoices.filter(isClearlyFemaleVoice);
+
+  return requestedGenderVoices.find(isBritishEnglishVoice)
+    || requestedGenderVoices[0]
+    || englishVoices.find(isBritishEnglishVoice)
+    || englishVoices[0]
+    || null;
+}
+
 const TTS = {
   speak(text, rate = STATE?.settings?.speechRate || 0.75, pitch = 1.05) {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
       if (!('speechSynthesis' in window)) { resolve(); return; }
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -10,13 +80,18 @@ const TTS = {
       utterance.pitch = pitch;
       utterance.onend = resolve;
       utterance.onerror = resolve;
-      const voices = window.speechSynthesis.getVoices();
-      const wantsMale = STATE.settings.voiceGender === 'male';
-      const preferredNames = wantsMale ? ['Daniel', 'Arthur', 'Oliver', 'George'] : ['Serena', 'Martha', 'Samantha', 'Karen'];
-      const preferred = voices.find(voice => voice.lang.startsWith('en') && preferredNames.some(name => voice.name.includes(name)))
-        || voices.find(voice => voice.lang === 'en-GB')
-        || voices.find(voice => voice.lang.startsWith('en'));
+
+      const genderSetting = STATE.settings.voiceGender === 'male' ? 'male' : 'female';
+      const voices = await getVoicesWithRetry();
+      const preferred = chooseVoice(voices, genderSetting);
       if (preferred) utterance.voice = preferred;
+
+      console.log('[Spell Squad TTS] chosen voice', {
+        voiceName: preferred?.name || 'browser default',
+        lang: preferred?.lang || utterance.lang,
+        genderSetting,
+      });
+
       window.speechSynthesis.speak(utterance);
     });
   },

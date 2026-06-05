@@ -375,7 +375,10 @@ function renderSettings() {
     { label: 'Fast', value: '1.15' },
   ], String(STATE.settings.speechRate), value => saveSettings({ speechRate: Number(value) }));
 
-  qs('btn-try-voice').onclick = () => TTS.speak('Welcome to Spell Squad. Let’s practise slowly and confidently.', STATE.settings.speechRate, 1.05);
+  qs('btn-try-voice').onclick = () => {
+    const voiceLabel = STATE.settings.voiceGender === 'male' ? 'male' : 'female';
+    TTS.speak(`Hello, I am the ${voiceLabel} voice for Spell Squad`, STATE.settings.speechRate, 1.05);
+  };
   const allToggle = qs('toggle-all-games');
   allToggle.checked = STATE.settings.visibleGames.length === GAME_CATALOG.length;
   allToggle.onchange = async () => {
