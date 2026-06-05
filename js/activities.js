@@ -98,7 +98,7 @@ const TTS = {
   async sayWord(word, wordData = {}) {
     await TTS.speak(word, STATE.settings.speechRate, 1.08);
     await wait(260);
-    await TTS.speak(wordData.sentence || `Can you spell ${word}?`, Math.min(STATE.settings.speechRate + 0.08, 1.2), 1.0);
+    await TTS.speak(pickSentence(word, wordData), Math.min(STATE.settings.speechRate + 0.08, 1.2), 1.0);
   },
   async saySlowly(word) {
     const chunks = (STATE.wordData[word]?.chunks || [word]).join(' ... ');
@@ -171,6 +171,11 @@ function shuffle(arr) {
 
 function updateProgress(current, total) { document.getElementById('progress-pill').textContent = `${current} / ${total}`; }
 function getData(word) { return STATE.wordData[word] || detectWordPatterns(word); }
+function pickSentence(word, wordData = {}) {
+  const sentences = Array.isArray(wordData.sentences) ? wordData.sentences.filter(Boolean) : [];
+  if (sentences.length) return sentences[Math.floor(Math.random() * sentences.length)];
+  return wordData.sentence || `Can you spell ${word}?`;
+}
 function phonicsHtml(word, revealed = true) {
   const chunks = getData(word).chunks || [word];
   return `<div class="phonics-chunks ${revealed ? '' : 'muted'}">${chunks.map((chunk, index) => `<span class="phonics-chunk chunk-${(index % 4) + 1}">${escapeHtml(chunk)}</span>`).join('')}</div>`;
@@ -193,16 +198,23 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
         <p class="eyebrow">${intro}</p>
         ${preReveal ? preReveal.replaceAll('{{word}}', escapeHtml(word)) : ''}
         <button class="hw-play-btn" id="play-word">🔊</button>
-        ${noPeek ? '' : phonicsHtml(word, false)}
+        ${noPeek || activity === 'look-cover-write' ? '' : phonicsHtml(word, false)}
         <div class="hw-input-wrap">
           <input class="hw-answer-input" id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${placeholder}">
           <div class="hw-feedback" id="feedback"></div>
           <button class="btn btn-primary" id="submit-answer">Check ✓</button>
         </div>
       </section>`;
-    const target = sentenceMode ? data.sentence : word;
-    setTimeout(() => sentenceMode ? TTS.speak(data.sentence, STATE.settings.speechRate, 1.0) : TTS.sayWord(word, data), 250);
-    document.getElementById('play-word').onclick = () => sentenceMode ? TTS.speak(data.sentence, STATE.settings.speechRate, 1.0) : TTS.sayWord(word, data);
+    const sentence = pickSentence(word, data);
+    const target = sentenceMode ? sentence : word;
+    setTimeout(() => sentenceMode ? TTS.speak(sentence, STATE.settings.speechRate, 1.0) : TTS.sayWord(word, data), 250);
+    document.getElementById('play-word').onclick = () => sentenceMode ? TTS.speak(sentence, STATE.settings.speechRate, 1.0) : TTS.sayWord(word, data);
+    const lookWord = document.getElementById('look-word');
+    const coverWord = document.getElementById('cover-word');
+    if (lookWord && coverWord) {
+      const originalWord = lookWord.textContent;
+      coverWord.onclick = () => { lookWord.textContent = '■'.repeat(originalWord.length); };
+    }
     const input = document.getElementById('answer-input');
     input.focus();
     const check = () => {
@@ -226,7 +238,7 @@ function runLookCoverWrite(words, activity = 'look-cover-write') {
     words,
     activity,
     intro: 'Look, cover, write, check',
-    preReveal: '<div class="look-cover-word" id="look-word">{{word}}</div><button class="btn btn-soft" onclick="document.getElementById(\'look-word\').classList.add(\'covered\')">🙈 Cover word</button>',
+    preReveal: '<div class="look-cover-word" id="look-word">{{word}}</div><button class="btn btn-soft" id="cover-word">🙈 Cover word</button>',
   });
 }
 
@@ -252,6 +264,7 @@ function runBuildSounds(words, activity = 'build-sounds') {
         <p class="eyebrow">Build the sounds in order</p>
         <button class="hw-play-btn" id="play-word">🔊</button>
         <div class="build-target" id="build-target"></div>
+        <button class="btn btn-secondary" id="reset-build">Reset ↺</button>
         <div class="chunk-bank">${shuffle([...chunks]).map(chunk => `<button class="phonics-chunk chunk-choice" data-chunk="${escapeHtml(chunk)}">${escapeHtml(chunk)}</button>`).join('')}</div>
         ${soundMapHtml(word)}
         <div class="hw-feedback" id="feedback"></div>
@@ -260,7 +273,13 @@ function runBuildSounds(words, activity = 'build-sounds') {
     setTimeout(() => TTS.sayWord(word, getData(word)), 250);
     document.getElementById('play-word').onclick = () => TTS.sayWord(word, getData(word));
     const picked = [];
-    body.querySelectorAll('.chunk-choice').forEach(btn => btn.onclick = () => { picked.push(btn.dataset.chunk); btn.disabled = true; document.getElementById('build-target').innerHTML = picked.map(c => `<span>${escapeHtml(c)}</span>`).join(''); });
+    const buildTarget = document.getElementById('build-target');
+    body.querySelectorAll('.chunk-choice').forEach(btn => btn.onclick = () => { picked.push(btn.dataset.chunk); btn.disabled = true; buildTarget.innerHTML = picked.map(c => `<span>${escapeHtml(c)}</span>`).join(''); });
+    document.getElementById('reset-build').onclick = () => {
+      picked.length = 0;
+      buildTarget.innerHTML = '';
+      body.querySelectorAll('.chunk-choice').forEach(btn => { btn.disabled = false; });
+    };
     document.getElementById('check-build').onclick = () => {
       const correct = picked.join('') === word;
       results.push({ word, correct });
