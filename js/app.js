@@ -97,11 +97,6 @@ function showToast(msg, duration = 2500) {
 }
 
 // ── Auth ──────────────────────────────────────────────────
-const ALLOWED_EMAILS = [
-  'nishaypatel@gmail.com',
-  'prinapatel1097@gmail.com',
-];
-
 auth.onAuthStateChanged(async user => {
   if (user) {
     if (!ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
@@ -111,7 +106,7 @@ auth.onAuthStateChanged(async user => {
       return;
     }
     STATE.user     = user;
-    STATE.familyId = FAMILY_MAP[email];
+    STATE.familyId = FAMILY_MAP[user.email.toLowerCase()];
     await loadTheme();
     await loadCurrentWeek();
     renderHome();
