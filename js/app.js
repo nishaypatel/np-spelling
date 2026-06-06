@@ -152,10 +152,20 @@ function getDefaultWeek() {
 function enrichWordData(words, wordData = {}) {
   const enriched = {};
   words.forEach(word => {
-    enriched[word] = {
-      ...autoDetectPatterns(word),
-      ...(wordData[word] || {}),
-    };
+    const existing = wordData[word] || {};
+    if (existing.chunks && existing.chunks.length > 0) {
+      enriched[word] = { ...existing };
+    } else {
+      enriched[word] = {
+        ...autoDetectPatterns(word),
+        ...existing,
+      };
+    }
+    if (!enriched[word].sentences) {
+      enriched[word].sentences = enriched[word].sentence
+        ? [enriched[word].sentence]
+        : [`Can you spell ${word}?`];
+    }
   });
   return enriched;
 }
