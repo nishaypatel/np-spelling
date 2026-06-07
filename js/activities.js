@@ -173,9 +173,21 @@ function updateProgress(current, total) { document.getElementById('progress-pill
 function getData(word) { return STATE.wordData[word] || detectWordPatterns(word); }
 function pickSentence(word, wordData = {}) {
   const sentences = Array.isArray(wordData.sentences) ? wordData.sentences.filter(Boolean) : [];
-  if (sentences.length) return sentences[Math.floor(Math.random() * sentences.length)];
-  return wordData.sentence || `Can you spell ${word}?`;
+  const choices = sentences.length ? sentences : [wordData.sentence || `Can you spell ${word}?`];
+  if (choices.length <= 1) return choices[0];
+
+  if (!pickSentence.lastByWord) pickSentence.lastByWord = {};
+  const lastSentence = pickSentence.lastByWord[word];
+  const nextChoices = choices.filter(sentence => sentence !== lastSentence);
+  const picked = nextChoices[Math.floor(Math.random() * nextChoices.length)];
+  pickSentence.lastByWord[word] = picked;
+  return picked;
 }
+
+function inputControlsHtml(clearId) {
+  return `<div class="answer-actions"><button class="btn btn-soft" id="${clearId}" type="button">Clear input</button></div>`;
+}
+
 function phonicsHtml(word, revealed = true) {
   const chunks = getData(word).chunks || [word];
   return `<div class="phonics-chunks ${revealed ? '' : 'muted'}">${chunks.map((chunk, index) => `<span class="phonics-chunk chunk-${(index % 4) + 1}">${escapeHtml(chunk)}</span>`).join('')}</div>`;
@@ -198,9 +210,9 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
         <p class="eyebrow">${intro}</p>
         ${preReveal ? preReveal.replaceAll('{{word}}', escapeHtml(word)) : ''}
         <button class="hw-play-btn" id="play-word">🔊</button>
-        ${noPeek || activity === 'look-cover-write' ? '' : phonicsHtml(word, false)}
         <div class="hw-input-wrap">
           <input class="hw-answer-input" id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${placeholder}">
+          ${inputControlsHtml('clear-answer')}
           <div class="hw-feedback" id="feedback"></div>
           <button class="btn btn-primary" id="submit-answer">Check ✓</button>
         </div>
@@ -216,6 +228,7 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
       coverWord.onclick = () => { lookWord.textContent = '■'.repeat(originalWord.length); };
     }
     const input = document.getElementById('answer-input');
+    document.getElementById('clear-answer').onclick = () => { input.value = ''; input.focus(); };
     input.focus();
     const check = () => {
       const answer = input.value.trim().toLowerCase();
@@ -266,7 +279,6 @@ function runBuildSounds(words, activity = 'build-sounds') {
         <div class="build-target" id="build-target"></div>
         <button class="btn btn-secondary" id="reset-build">Reset ↺</button>
         <div class="chunk-bank">${shuffle([...chunks]).map(chunk => `<button class="phonics-chunk chunk-choice" data-chunk="${escapeHtml(chunk)}">${escapeHtml(chunk)}</button>`).join('')}</div>
-        ${soundMapHtml(word)}
         <div class="hw-feedback" id="feedback"></div>
         <button class="btn btn-primary" id="check-build">Check ✓</button>
       </section>`;
@@ -357,9 +369,17 @@ function runMissingLetters(words, activity = 'missing-letters') {
     updateProgress(idx + 1, words.length);
     const body = document.getElementById('activity-body');
     const letters = [...word].map((letter, i) => positions.includes(i) ? `<input class="ml-blank" data-pos="${i}" maxlength="1">` : `<span>${letter}</span>`).join('');
-    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Fill in the missing spelling</p><button class="hw-play-btn" id="play-word">🔊</button><div class="ml-word-display">${letters}</div>${phonicsHtml(word)}<div class="hw-feedback" id="feedback"></div><button class="btn btn-primary" id="check-missing">Check ✓</button></section>`;
+    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Fill in the missing spelling</p><button class="hw-play-btn" id="play-word">🔊</button><div class="ml-word-display">${letters}</div>${inputControlsHtml('clear-missing')}<div class="hw-feedback" id="feedback"></div><button class="btn btn-primary" id="check-missing">Check ✓</button></section>`;
     setTimeout(() => TTS.speak(word, STATE.settings.speechRate, 1.0), 250);
     document.getElementById('play-word').onclick = () => TTS.speak(word, STATE.settings.speechRate, 1.0);
+    document.getElementById('clear-missing').onclick = () => {
+      body.querySelectorAll('.ml-blank').forEach(input => { input.value = ''; });
+      body.querySelector('.ml-blank')?.focus();
+    };
+    body.querySelector('.ml-blank')?.focus();
+    body.querySelectorAll('.ml-blank').forEach(input => {
+      input.onkeydown = e => { if (e.key === 'Enter') document.getElementById('check-missing').click(); };
+    });
     document.getElementById('check-missing').onclick = () => {
       const correct = [...body.querySelectorAll('.ml-blank')].every(input => input.value.trim().toLowerCase() === word[Number(input.dataset.pos)]);
       results.push({ word, correct });
@@ -377,9 +397,13 @@ function runUnscramble(words, activity = 'unscramble') {
     const word = words[idx];
     updateProgress(idx + 1, words.length);
     const body = document.getElementById('activity-body');
-    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Unscramble the word</p><div class="scramble">${shuffle([...word]).join(' ')}</div>${phonicsHtml(word, false)}<input class="hw-answer-input" id="answer-input" placeholder="unscrambled word"><div class="hw-feedback" id="feedback"></div><button class="btn btn-primary" id="check">Check ✓</button></section>`;
+    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Unscramble the word</p><div class="scramble">${shuffle([...word]).join(' ')}</div><input class="hw-answer-input" id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="unscrambled word">${inputControlsHtml('clear-unscramble')}<div class="hw-feedback" id="feedback"></div><button class="btn btn-primary" id="check">Check ✓</button></section>`;
+    const input = document.getElementById('answer-input');
+    document.getElementById('clear-unscramble').onclick = () => { input.value = ''; input.focus(); };
+    input.focus();
+    input.onkeydown = e => { if (e.key === 'Enter') document.getElementById('check').click(); };
     document.getElementById('check').onclick = () => {
-      const correct = document.getElementById('answer-input').value.trim().toLowerCase() === word;
+      const correct = input.value.trim().toLowerCase() === word;
       results.push({ word, correct });
       finishRound(body, document.getElementById('feedback'), correct, word, () => { idx++; render(); });
     };
@@ -395,10 +419,17 @@ function runBossRound(words, activity = 'boss-round') { runWriteActivity(words, 
 function finishRound(body, feedback, correct, word, next) {
   body.querySelectorAll('button, input').forEach(el => { if (!el.id?.startsWith('next')) el.disabled = true; });
   feedback.className = `hw-feedback ${correct ? 'correct' : 'wrong'}`;
-  feedback.innerHTML = correct ? getPositiveMessage() : `The correct spelling is:<div class="correct-answer-reveal">${escapeHtml(word)}</div>${phonicsHtml(word)}${soundMapHtml(word)}`;
-  if (correct) TTS.speak(getPositiveMessage(), 1.0, 1.18); else TTS.saySlowly(word);
+  if (correct) {
+    const message = getPositiveMessage();
+    feedback.innerHTML = `${message}<div class="auto-next-note">Next word coming up…</div>`;
+    TTS.speak(message, 1.0, 1.18).then(() => setTimeout(next, 350));
+    return;
+  }
+
+  feedback.innerHTML = `The correct spelling is:<div class="correct-answer-reveal">${escapeHtml(word)}</div>${phonicsHtml(word)}${soundMapHtml(word)}`;
+  TTS.saySlowly(word);
   const nextBtn = document.createElement('button');
-  nextBtn.className = correct ? 'btn btn-correct' : 'btn btn-secondary';
+  nextBtn.className = 'btn btn-secondary';
   nextBtn.textContent = 'Next →';
   nextBtn.id = 'next-round';
   nextBtn.onclick = next;

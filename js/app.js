@@ -149,6 +149,24 @@ function getDefaultWeek() {
   return JSON.parse(JSON.stringify(WEEK_WORDS));
 }
 
+function defaultSentencesForWord(word) {
+  return [
+    `Can you spell ${word}?`,
+    `I can read the word ${word}.`,
+    `Please write ${word} carefully.`,
+    `The word of the week is ${word}.`,
+    `Listen for ${word} in this sentence.`,
+  ];
+}
+
+function makeSentenceOptions(word, data = {}) {
+  const existing = Array.isArray(data.sentences) ? data.sentences : [];
+  const sentenceList = [...existing, data.sentence, ...defaultSentencesForWord(word)]
+    .map(sentence => String(sentence || '').trim())
+    .filter(Boolean);
+  return [...new Set(sentenceList)].slice(0, 5);
+}
+
 function enrichWordData(words, wordData = {}) {
   const enriched = {};
   words.forEach(word => {
@@ -161,11 +179,8 @@ function enrichWordData(words, wordData = {}) {
         ...existing,
       };
     }
-    if (!enriched[word].sentences) {
-      enriched[word].sentences = enriched[word].sentence
-        ? [enriched[word].sentence]
-        : [`Can you spell ${word}?`];
-    }
+    enriched[word].sentences = makeSentenceOptions(word, enriched[word]);
+    enriched[word].sentence = enriched[word].sentences[0];
   });
   return enriched;
 }
