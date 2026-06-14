@@ -28,32 +28,17 @@ function isClearlyMaleVoice(voice) {
   return voiceNameIncludes(voice, MALE_VOICE_NAMES) && !voiceNameIncludes(voice, FEMALE_VOICE_NAMES);
 }
 
-function waitForVoicesChanged(timeout = 180) {
-  return new Promise(resolve => {
-    if (window.speechSynthesis.addEventListener) {
-      const timer = setTimeout(() => {
-        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
-        resolve();
-      }, timeout);
-      const onVoicesChanged = () => {
-        clearTimeout(timer);
-        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
-        resolve();
-      };
-      window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
-      return;
-    }
-    setTimeout(resolve, timeout);
-  });
+// iOS Safari requires speechSynthesis.speak() to be called synchronously
+// within a user gesture. Pre-caching voices here means speak() never needs
+// to await anything before calling speak(), keeping the call synchronous.
+let _voiceCache = [];
+function _refreshVoiceCache() {
+  const v = window.speechSynthesis.getVoices();
+  if (v.length) _voiceCache = v;
 }
-
-async function getVoicesWithRetry() {
-  let voices = window.speechSynthesis.getVoices();
-  for (let attempt = 0; attempt < 4 && voices.length === 0; attempt++) {
-    await waitForVoicesChanged(180);
-    voices = window.speechSynthesis.getVoices();
-  }
-  return voices;
+if ('speechSynthesis' in window) {
+  _refreshVoiceCache();
+  window.speechSynthesis.addEventListener('voiceschanged', _refreshVoiceCache);
 }
 
 function chooseVoice(voices, genderSetting) {
@@ -71,8 +56,10 @@ function chooseVoice(voices, genderSetting) {
 
 const TTS = {
   speak(text, rate = STATE?.settings?.speechRate || 0.75, pitch = 1.05) {
-    return new Promise(async resolve => {
+    return new Promise(resolve => {
       if (!('speechSynthesis' in window)) { resolve(); return; }
+      // Resume in case iOS paused the synthesizer (e.g. after app backgrounded)
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-GB';
@@ -80,18 +67,11 @@ const TTS = {
       utterance.pitch = pitch;
       utterance.onend = resolve;
       utterance.onerror = resolve;
-
-      const genderSetting = STATE.settings.voiceGender === 'male' ? 'male' : 'female';
-      const voices = await getVoicesWithRetry();
-      const preferred = chooseVoice(voices, genderSetting);
+      // Use pre-cached voices — no await, so this stays synchronous and
+      // satisfies iOS Safari's user-gesture requirement.
+      const genderSetting = STATE?.settings?.voiceGender === 'male' ? 'male' : 'female';
+      const preferred = chooseVoice(_voiceCache, genderSetting);
       if (preferred) utterance.voice = preferred;
-
-      console.log('[Spell Squad TTS] chosen voice', {
-        voiceName: preferred?.name || 'browser default',
-        lang: preferred?.lang || utterance.lang,
-        genderSetting,
-      });
-
       window.speechSynthesis.speak(utterance);
     });
   },
@@ -107,7 +87,6 @@ const TTS = {
   cancel() { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); },
 };
 window.TTS = TTS;
-if ('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
