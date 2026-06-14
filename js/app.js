@@ -123,7 +123,7 @@ function normaliseSettings(raw = {}) {
   return {
     ...DEFAULT_SETTINGS,
     ...raw,
-    voiceEngine: ['azure', 'piper', 'device'].includes(raw.voiceEngine) ? raw.voiceEngine : DEFAULT_SETTINGS.voiceEngine,
+    voiceEngine: ['azure', 'device'].includes(raw.voiceEngine) ? raw.voiceEngine : DEFAULT_SETTINGS.voiceEngine,
     speechRate: Number(raw.speechRate || DEFAULT_SETTINGS.speechRate),
     visibleGames: visible.filter(id => GAME_CATALOG.some(game => game.id === id)),
   };
@@ -394,10 +394,8 @@ async function resetProgressWithConfirm() {
 }
 
 function renderSettings() {
-  const azureConfigured = typeof AZURE_TTS_CONFIG !== 'undefined' && AZURE_TTS_CONFIG.key && AZURE_TTS_CONFIG.region;
   const engineNotes = {
-    azure:  azureConfigured ? '✅ Connected — high-quality British neural voices via Azure.' : '⚠️ Not set up yet. Open <b>js/azure-config.js</b> and paste your key + region from the Azure portal.',
-    piper:  '📴 Runs offline in your browser. Downloads ~75 MB on first use (then cached).',
+    azure:  '✨ High-quality British neural voices via Azure (secure server proxy). Falls back to the device voice if unavailable.',
     device: '📱 Uses your phone\'s or computer\'s built-in voice.',
   };
 
@@ -443,7 +441,6 @@ function renderSettings() {
 
   renderSegmented('voice-engine-options', [
     { label: '✨ Azure', value: 'azure' },
-    { label: '📴 Piper', value: 'piper' },
     { label: '📱 Device', value: 'device' },
   ], STATE.settings.voiceEngine, async value => {
     await saveSettings({ voiceEngine: value });

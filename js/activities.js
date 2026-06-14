@@ -43,51 +43,27 @@ function _getAudioCtx() {
 }
 
 let _azureSource = null;
-function _escapeXml(t) { return String(t).replace(/[<>&'"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c])); }
 
+// Calls our own /api/tts serverless proxy, which holds the Azure key
+// server-side (as a Vercel env var) — the key is never sent to the browser.
 async function _azureSpeak(text, rate = 0.75) {
-  const { key, region } = (typeof AZURE_TTS_CONFIG !== 'undefined' ? AZURE_TTS_CONFIG : {});
-  if (!key || !region) throw new Error('Azure not configured');
-  const voice = STATE?.settings?.voiceGender === 'male' ? 'en-GB-RyanNeural' : 'en-GB-SoniaNeural';
-  const pct = Math.round((rate - 0.95) * 100);
-  const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-GB"><voice name="${voice}"><prosody rate="${pct >= 0 ? '+' : ''}${pct}%">${_escapeXml(text)}</prosody></voice></speak>`;
   const ctx = _getAudioCtx(); // unlock AudioContext synchronously before the async fetch
-  const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+  const res = await fetch('/api/tts', {
     method: 'POST',
-    headers: { 'Ocp-Apim-Subscription-Key': key, 'Content-Type': 'application/ssml+xml', 'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3' },
-    body: ssml,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text,
+      rate,
+      gender: STATE?.settings?.voiceGender === 'male' ? 'male' : 'female',
+    }),
   });
-  if (!res.ok) throw new Error(`Azure ${res.status}`);
+  if (!res.ok) throw new Error(`TTS proxy ${res.status}`);
   const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
   return new Promise(resolve => {
     if (_azureSource) { try { _azureSource.stop(); } catch (e) {} }
     const src = ctx.createBufferSource();
     src.buffer = decoded; src.connect(ctx.destination);
     src.onended = resolve; _azureSource = src; src.start();
-  });
-}
-
-// ── Piper TTS (in-browser neural, ~75 MB first-load) ────────
-let _piperReady = null;
-let _piperAudio = null;
-
-function _loadPiper() {
-  if (!_piperReady) _piperReady = import('https://esm.sh/@mintplex-labs/piper-tts-web').catch(e => { _piperReady = null; throw e; });
-  return _piperReady;
-}
-
-async function _piperSpeak(text, rate = 0.75) {
-  const tts = await _loadPiper();
-  const voiceId = STATE?.settings?.voiceGender === 'male' ? 'en_US-lessac-medium' : 'en_US-hfc_female-medium';
-  const wav = await tts.predict({ text, voiceId });
-  const url = URL.createObjectURL(wav);
-  const audio = new Audio(url);
-  audio.playbackRate = rate;
-  _piperAudio = audio;
-  return new Promise(resolve => {
-    audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-    audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-    audio.play().catch(resolve);
   });
 }
 
@@ -98,10 +74,6 @@ const TTS = {
     if (engine === 'azure') {
       try { return await _azureSpeak(text, rate); }
       catch (e) { console.warn('Azure TTS:', e.message); return _deviceSpeak(text, rate, pitch); }
-    }
-    if (engine === 'piper') {
-      try { return await _piperSpeak(text, rate); }
-      catch (e) { console.warn('Piper TTS:', e.message); return _deviceSpeak(text, rate, pitch); }
     }
     return _deviceSpeak(text, rate, pitch);
   },
@@ -116,7 +88,6 @@ const TTS = {
   },
   cancel() {
     if (_azureSource) { try { _azureSource.stop(); } catch (e) {} _azureSource = null; }
-    if (_piperAudio)  { _piperAudio.pause(); _piperAudio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   },
 };
