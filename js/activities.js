@@ -1,79 +1,109 @@
 // ── Text-to-Speech ─────────────────────────────────────────
-const FEMALE_VOICE_NAMES = [
-  'Samantha', 'Serena', 'Karen', 'Moira', 'Tessa', 'Kate', 'Susan',
-  'Victoria', 'Zoe', 'Ava', 'Allison', 'Fiona', 'Veena', 'Martha', 'Hazel',
-];
-const MALE_VOICE_NAMES = [
-  'Daniel', 'Alex', 'Oliver', 'Arthur', 'Fred', 'Tom', 'Rishi', 'George', 'Thomas',
-];
 
-function voiceNameIncludes(voice, names) {
-  const voiceName = String(voice?.name || '').toLowerCase();
-  return names.some(name => voiceName.includes(name.toLowerCase()));
+// ── Device voice helpers (Web Speech API) ──────────────────
+const FEMALE_VOICE_NAMES = ['Samantha','Serena','Karen','Moira','Tessa','Kate','Susan','Victoria','Zoe','Ava','Allison','Fiona','Veena','Martha','Hazel'];
+const MALE_VOICE_NAMES   = ['Daniel','Alex','Oliver','Arthur','Fred','Tom','Rishi','George','Thomas'];
+
+function voiceNameIncludes(voice, names) { return names.some(n => String(voice?.name||'').toLowerCase().includes(n.toLowerCase())); }
+function isEnglishVoice(v)       { return String(v?.lang||'').toLowerCase().startsWith('en'); }
+function isBritishEnglishVoice(v){ return String(v?.lang||'').toLowerCase() === 'en-gb'; }
+function isClearlyFemaleVoice(v) { return voiceNameIncludes(v, FEMALE_VOICE_NAMES) && !voiceNameIncludes(v, MALE_VOICE_NAMES); }
+function isClearlyMaleVoice(v)   { return voiceNameIncludes(v, MALE_VOICE_NAMES)   && !voiceNameIncludes(v, FEMALE_VOICE_NAMES); }
+function chooseVoice(voices, gender) {
+  const en = voices.filter(isEnglishVoice);
+  const gendered = en.filter(gender === 'male' ? isClearlyMaleVoice : isClearlyFemaleVoice);
+  return gendered.find(isBritishEnglishVoice) || gendered[0] || en.find(isBritishEnglishVoice) || en[0] || null;
 }
 
-function isEnglishVoice(voice) {
-  return String(voice?.lang || '').toLowerCase().startsWith('en');
-}
-
-function isBritishEnglishVoice(voice) {
-  return String(voice?.lang || '').toLowerCase() === 'en-gb';
-}
-
-function isClearlyFemaleVoice(voice) {
-  return voiceNameIncludes(voice, FEMALE_VOICE_NAMES) && !voiceNameIncludes(voice, MALE_VOICE_NAMES);
-}
-
-function isClearlyMaleVoice(voice) {
-  return voiceNameIncludes(voice, MALE_VOICE_NAMES) && !voiceNameIncludes(voice, FEMALE_VOICE_NAMES);
-}
-
-// iOS Safari requires speechSynthesis.speak() to be called synchronously
-// within a user gesture. Pre-caching voices here means speak() never needs
-// to await anything before calling speak(), keeping the call synchronous.
+// Pre-cache voices so _deviceSpeak() stays synchronous (iOS gesture requirement)
 let _voiceCache = [];
-function _refreshVoiceCache() {
-  const v = window.speechSynthesis.getVoices();
-  if (v.length) _voiceCache = v;
-}
-if ('speechSynthesis' in window) {
-  _refreshVoiceCache();
-  window.speechSynthesis.addEventListener('voiceschanged', _refreshVoiceCache);
-}
+function _refreshVoiceCache() { const v = window.speechSynthesis.getVoices(); if (v.length) _voiceCache = v; }
+if ('speechSynthesis' in window) { _refreshVoiceCache(); window.speechSynthesis.addEventListener('voiceschanged', _refreshVoiceCache); }
 
-function chooseVoice(voices, genderSetting) {
-  const englishVoices = voices.filter(isEnglishVoice);
-  const requestedGenderVoices = genderSetting === 'male'
-    ? englishVoices.filter(isClearlyMaleVoice)
-    : englishVoices.filter(isClearlyFemaleVoice);
-
-  return requestedGenderVoices.find(isBritishEnglishVoice)
-    || requestedGenderVoices[0]
-    || englishVoices.find(isBritishEnglishVoice)
-    || englishVoices[0]
-    || null;
+function _deviceSpeak(text, rate = 0.75, pitch = 1.05) {
+  return new Promise(resolve => {
+    if (!('speechSynthesis' in window)) { resolve(); return; }
+    if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'en-GB'; utt.rate = rate; utt.pitch = pitch;
+    utt.onend = resolve; utt.onerror = resolve;
+    const preferred = chooseVoice(_voiceCache, STATE?.settings?.voiceGender === 'male' ? 'male' : 'female');
+    if (preferred) utt.voice = preferred;
+    window.speechSynthesis.speak(utt);
+  });
 }
 
+// ── Azure TTS ───────────────────────────────────────────────
+let _audioCtx = null;
+function _getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+let _azureSource = null;
+function _escapeXml(t) { return String(t).replace(/[<>&'"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c])); }
+
+async function _azureSpeak(text, rate = 0.75) {
+  const { key, region } = (typeof AZURE_TTS_CONFIG !== 'undefined' ? AZURE_TTS_CONFIG : {});
+  if (!key || !region) throw new Error('Azure not configured');
+  const voice = STATE?.settings?.voiceGender === 'male' ? 'en-GB-RyanNeural' : 'en-GB-SoniaNeural';
+  const pct = Math.round((rate - 0.95) * 100);
+  const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-GB"><voice name="${voice}"><prosody rate="${pct >= 0 ? '+' : ''}${pct}%">${_escapeXml(text)}</prosody></voice></speak>`;
+  const ctx = _getAudioCtx(); // unlock AudioContext synchronously before the async fetch
+  const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+    method: 'POST',
+    headers: { 'Ocp-Apim-Subscription-Key': key, 'Content-Type': 'application/ssml+xml', 'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3' },
+    body: ssml,
+  });
+  if (!res.ok) throw new Error(`Azure ${res.status}`);
+  const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
+  return new Promise(resolve => {
+    if (_azureSource) { try { _azureSource.stop(); } catch (e) {} }
+    const src = ctx.createBufferSource();
+    src.buffer = decoded; src.connect(ctx.destination);
+    src.onended = resolve; _azureSource = src; src.start();
+  });
+}
+
+// ── Piper TTS (in-browser neural, ~75 MB first-load) ────────
+let _piperReady = null;
+let _piperAudio = null;
+
+function _loadPiper() {
+  if (!_piperReady) _piperReady = import('https://esm.sh/@mintplex-labs/piper-tts-web').catch(e => { _piperReady = null; throw e; });
+  return _piperReady;
+}
+
+async function _piperSpeak(text, rate = 0.75) {
+  const tts = await _loadPiper();
+  const voiceId = STATE?.settings?.voiceGender === 'male' ? 'en_US-lessac-medium' : 'en_US-hfc_female-medium';
+  const wav = await tts.predict({ text, voiceId });
+  const url = URL.createObjectURL(wav);
+  const audio = new Audio(url);
+  audio.playbackRate = rate;
+  _piperAudio = audio;
+  return new Promise(resolve => {
+    audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+    audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+    audio.play().catch(resolve);
+  });
+}
+
+// ── TTS dispatcher ──────────────────────────────────────────
 const TTS = {
-  speak(text, rate = STATE?.settings?.speechRate || 0.75, pitch = 1.05) {
-    return new Promise(resolve => {
-      if (!('speechSynthesis' in window)) { resolve(); return; }
-      // Resume in case iOS paused the synthesizer (e.g. after app backgrounded)
-      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-GB';
-      utterance.rate = rate;
-      utterance.pitch = pitch;
-      utterance.onend = resolve;
-      utterance.onerror = resolve;
-      // Use pre-cached voices — no await, so this stays synchronous and
-      // satisfies iOS Safari's user-gesture requirement.
-      const genderSetting = STATE?.settings?.voiceGender === 'male' ? 'male' : 'female';
-      const preferred = chooseVoice(_voiceCache, genderSetting);
-      if (preferred) utterance.voice = preferred;
-      window.speechSynthesis.speak(utterance);
-    });
+  async speak(text, rate = STATE?.settings?.speechRate || 0.75, pitch = 1.05) {
+    const engine = STATE?.settings?.voiceEngine || 'azure';
+    if (engine === 'azure') {
+      try { return await _azureSpeak(text, rate); }
+      catch (e) { console.warn('Azure TTS:', e.message); return _deviceSpeak(text, rate, pitch); }
+    }
+    if (engine === 'piper') {
+      try { return await _piperSpeak(text, rate); }
+      catch (e) { console.warn('Piper TTS:', e.message); return _deviceSpeak(text, rate, pitch); }
+    }
+    return _deviceSpeak(text, rate, pitch);
   },
   async sayWord(word, wordData = {}) {
     await TTS.speak(word, STATE.settings.speechRate, 1.08);
@@ -84,7 +114,11 @@ const TTS = {
     const chunks = (STATE.wordData[word]?.chunks || [word]).join(' ... ');
     await TTS.speak(chunks, Math.max(0.55, STATE.settings.speechRate - 0.12), 1.0);
   },
-  cancel() { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); },
+  cancel() {
+    if (_azureSource) { try { _azureSource.stop(); } catch (e) {} _azureSource = null; }
+    if (_piperAudio)  { _piperAudio.pause(); _piperAudio = null; }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  },
 };
 window.TTS = TTS;
 

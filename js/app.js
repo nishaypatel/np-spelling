@@ -32,6 +32,7 @@ const GAME_CATALOG = [
 
 const DEFAULT_SETTINGS = {
   theme: 'rainbow',
+  voiceEngine: 'azure',
   voiceGender: 'female',
   speechRate: 0.75,
   visibleGames: DEFAULT_VISIBLE_GAMES,
@@ -122,6 +123,7 @@ function normaliseSettings(raw = {}) {
   return {
     ...DEFAULT_SETTINGS,
     ...raw,
+    voiceEngine: ['azure', 'piper', 'device'].includes(raw.voiceEngine) ? raw.voiceEngine : DEFAULT_SETTINGS.voiceEngine,
     speechRate: Number(raw.speechRate || DEFAULT_SETTINGS.speechRate),
     visibleGames: visible.filter(id => GAME_CATALOG.some(game => game.id === id)),
   };
@@ -392,10 +394,22 @@ async function resetProgressWithConfirm() {
 }
 
 function renderSettings() {
+  const azureConfigured = typeof AZURE_TTS_CONFIG !== 'undefined' && AZURE_TTS_CONFIG.key && AZURE_TTS_CONFIG.region;
+  const engineNotes = {
+    azure:  azureConfigured ? '✅ Connected — high-quality British neural voices via Azure.' : '⚠️ Not set up yet. Open <b>js/azure-config.js</b> and paste your key + region from the Azure portal.',
+    piper:  '📴 Runs offline in your browser. Downloads ~75 MB on first use (then cached).',
+    device: '📱 Uses your phone\'s or computer\'s built-in voice.',
+  };
+
   qs('settings-body').innerHTML = `
     <section class="settings-card apple-card">
       <h2>Theme selector</h2>
       <div class="theme-grid" id="theme-grid"></div>
+    </section>
+    <section class="settings-card apple-card">
+      <h2>Voice Engine</h2>
+      <div class="segmented" id="voice-engine-options"></div>
+      <p class="engine-note" id="engine-note">${engineNotes[STATE.settings.voiceEngine] || ''}</p>
     </section>
     <section class="settings-card apple-card">
       <h2>Voice</h2>
@@ -426,6 +440,16 @@ function renderSettings() {
   const themeGrid = qs('theme-grid');
   themeGrid.innerHTML = THEMES.map(theme => `<button class="theme-card ${theme.id === STATE.settings.theme ? 'active' : ''}" data-theme="${theme.id}"><span>${theme.emoji}</span><b>${theme.name}</b></button>`).join('');
   themeGrid.querySelectorAll('[data-theme]').forEach(btn => btn.addEventListener('click', async () => { await saveSettings({ theme: btn.dataset.theme }); renderSettings(); showToast('Theme saved!'); }));
+
+  renderSegmented('voice-engine-options', [
+    { label: '✨ Azure', value: 'azure' },
+    { label: '📴 Piper', value: 'piper' },
+    { label: '📱 Device', value: 'device' },
+  ], STATE.settings.voiceEngine, async value => {
+    await saveSettings({ voiceEngine: value });
+    renderSettings();
+    showToast('Voice engine saved!');
+  });
 
   renderSegmented('voice-gender-options', [
     { label: 'Female voice', value: 'female' },
