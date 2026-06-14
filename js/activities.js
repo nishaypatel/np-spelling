@@ -73,7 +73,11 @@ const TTS = {
     const engine = STATE?.settings?.voiceEngine || 'azure';
     if (engine === 'azure') {
       try { return await _azureSpeak(text, rate); }
-      catch (e) { console.warn('Azure TTS:', e.message); return _deviceSpeak(text, rate, pitch); }
+      catch (e) {
+        console.warn('Azure TTS:', e.message);
+        if (typeof showToast === 'function') showToast('⚠️ Azure voice error: ' + e.message, 4000);
+        return _deviceSpeak(text, rate, pitch);
+      }
     }
     return _deviceSpeak(text, rate, pitch);
   },
