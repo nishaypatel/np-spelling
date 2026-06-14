@@ -189,6 +189,10 @@ async function loadCurrentWeek() {
     || manifest.weeks[manifest.weeks.length - 1];
   const full = await loadWeekData(entry);
 
+  await applyWeekData(entry, full);
+}
+
+async function applyWeekData(entry, full) {
   STATE.currentWeekId = full.weekId || entry.weekId;
   STATE.words = [...full.words];
   STATE.wordData = enrichWordData(STATE.words, full.wordData || {});
@@ -198,10 +202,10 @@ async function loadCurrentWeek() {
     const doc = await db.collection('families').doc(STATE.familyId).collection('weeks').doc(STATE.currentWeekId).get();
     if (doc.exists && Array.isArray(doc.data().words)) {
       STATE.words = doc.data().words.slice(0, 8).map(w => String(w).trim().toLowerCase()).filter(Boolean);
-      STATE.wordData = enrichWordData(STATE.words, { ...defaults.wordData, ...(doc.data().wordData || {}) });
+      STATE.wordData = enrichWordData(STATE.words, { ...(full.wordData || {}), ...(doc.data().wordData || {}) });
     }
   } catch (e) {
-    console.warn('loadCurrentWeek', e);
+    console.warn('applyWeekData', e);
   }
 }
 
@@ -457,13 +461,28 @@ function renderWordHistory() {
   }
   // Columns flow left-to-right; CSS wraps to a new row after every 5 weeks.
   grid.innerHTML = weeks.map(week => {
-    const isCurrent = week.weekId === STATE.currentWeekId;
+    const isActive = week.weekId === STATE.currentWeekId;
     const words = (week.words || []).map(w => `<li>${escapeHtml(w)}</li>`).join('');
-    return `<div class="history-week${isCurrent ? ' current' : ''}">
-      <h3>${escapeHtml(week.label || week.weekId)}${isCurrent ? ' <span class="history-now">now</span>' : ''}</h3>
+    return `<button class="history-week${isActive ? ' current' : ''}" data-week-id="${escapeHtml(week.weekId)}">
+      <h3>${escapeHtml(week.label || week.weekId)}${isActive ? ' <span class="history-now">now</span>' : ''}</h3>
       <ol class="history-words">${words}</ol>
-    </div>`;
+    </button>`;
   }).join('');
+
+  grid.querySelectorAll('.history-week').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const entry = STATE.manifest.weeks.find(w => w.weekId === btn.dataset.weekId);
+      if (!entry) return;
+      btn.disabled = true;
+      const full = await loadWeekData(entry);
+      await applyWeekData(entry, full);
+      setWeekLabel();
+      renderHome();
+      renderWordHistory();
+      showToast(`Switched to ${entry.label}!`);
+      showScreen('screen-home');
+    });
+  });
 }
 
 function renderSegmented(containerId, options, current, onChange) {
