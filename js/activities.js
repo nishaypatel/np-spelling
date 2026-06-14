@@ -57,7 +57,10 @@ async function _azureSpeak(text, rate = 0.75) {
       gender: STATE?.settings?.voiceGender === 'male' ? 'male' : 'female',
     }),
   });
-  if (!res.ok) throw new Error(`TTS proxy ${res.status}`);
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(`TTS proxy ${res.status}: ${detail.error || 'unknown'}`);
+  }
   const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
   return new Promise(resolve => {
     if (_azureSource) { try { _azureSource.stop(); } catch (e) {} }

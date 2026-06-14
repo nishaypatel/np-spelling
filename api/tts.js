@@ -19,11 +19,21 @@ function readBody(req) {
 }
 
 module.exports = async function handler(req, res) {
+  // Diagnostic GET so we can confirm the function runs and env vars are present
+  if (req.method === 'GET') {
+    res.status(200).json({
+      ok: true,
+      hasKey: !!process.env.AZURE_SPEECH_KEY,
+      hasRegion: !!process.env.AZURE_SPEECH_REGION,
+      region: process.env.AZURE_SPEECH_REGION || 'not set',
+    });
+    return;
+  }
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
   const key = process.env.AZURE_SPEECH_KEY;
   const region = process.env.AZURE_SPEECH_REGION;
-  if (!key || !region) { res.status(500).json({ error: 'Azure env vars not set on server' }); return; }
+  if (!key || !region) { res.status(500).json({ error: `Missing env vars: key=${!!key} region=${!!region}` }); return; }
 
   const body = await readBody(req);
   const text = String(body.text || '').slice(0, 1000).trim();
