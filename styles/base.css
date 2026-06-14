@@ -364,7 +364,71 @@ button { cursor: pointer; }
 }
 .hw-feedback.correct { color: #20b486; }
 .hw-feedback.wrong { color: #ff4f6d; }
-.answer-actions { display: flex; justify-content: center; }
+.answer-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+/* ── On-screen keyboard ── */
+.onscreen-keyboard { display: grid; gap: 8px; margin: 4px auto 0; width: 100%; }
+.kb-row { display: flex; gap: 6px; justify-content: center; }
+.kb-key {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 54px;
+  padding: 14px 0;
+  border: 2px solid #ffd166;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1a1a2e;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+}
+.kb-key:active { background: #fff3e0; transform: translateY(1px); }
+.kb-space { flex: 4 1 0; max-width: none; }
+.kb-back { flex: 2 1 0; max-width: none; background: #ffd166; font-size: 1.4rem; }
+
+/* ── Unscramble letter blocks ── */
+.unscramble-answer {
+  min-height: 64px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 10px auto 18px;
+  padding: 12px;
+  border: 2px dashed #ffd166;
+  border-radius: 16px;
+}
+.answer-placeholder { color: #3d2000; font-weight: 700; opacity: .65; }
+.answer-tile {
+  display: inline-grid;
+  place-items: center;
+  min-width: 46px;
+  height: 56px;
+  padding: 0 8px;
+  background: #ff6b6b;
+  color: #ffffff;
+  border-radius: 12px;
+  font-size: 2rem;
+  font-weight: 700;
+}
+.letter-bank { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 6px auto 16px; }
+.letter-block {
+  min-width: 56px;
+  height: 64px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 14px;
+  background: #4ecdc4;
+  color: #ffffff;
+  font-size: 2rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+}
+.letter-block:active { transform: translateY(1px); }
+.letter-block:disabled { opacity: .25; cursor: default; }
 .auto-next-note { margin-top: 6px; color: #3d2000; font-size: 1rem; }
 .correct-answer-reveal {
   margin: 10px auto;

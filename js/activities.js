@@ -172,6 +172,31 @@ function inputControlsHtml(clearId) {
   return `<div class="answer-actions"><button class="btn btn-soft" id="${clearId}" type="button">Clear input</button></div>`;
 }
 
+// On-screen keyboard so kids can tap letters without the device keyboard.
+const KEYBOARD_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+function keyboardHtml() {
+  const rows = KEYBOARD_ROWS.map(row =>
+    `<div class="kb-row">${[...row].map(ch => `<button type="button" class="kb-key" data-key="${ch}">${ch}</button>`).join('')}</div>`
+  ).join('');
+  return `<div class="onscreen-keyboard" id="onscreen-keyboard">${rows}
+    <div class="kb-row">
+      <button type="button" class="kb-key kb-space" data-key=" ">space</button>
+      <button type="button" class="kb-key kb-back" data-action="backspace">⌫</button>
+    </div>
+  </div>`;
+}
+function wireKeyboard(container, getInput) {
+  if (!container) return;
+  container.querySelectorAll('.kb-key').forEach(key => key.addEventListener('click', () => {
+    const input = typeof getInput === 'function' ? getInput() : getInput;
+    if (!input) return;
+    if (key.dataset.action === 'backspace') input.value = input.value.slice(0, -1);
+    else input.value += key.dataset.key;
+    input.focus();
+    input.dispatchEvent(new Event('input'));
+  }));
+}
+
 function phonicsHtml(word, revealed = true) {
   const chunks = getData(word).chunks || [word];
   return `<div class="phonics-chunks ${revealed ? '' : 'muted'}">${chunks.map((chunk, index) => `<span class="phonics-chunk chunk-${(index % 4) + 1}">${escapeHtml(chunk)}</span>`).join('')}</div>`;
@@ -195,8 +220,9 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
         ${preReveal ? preReveal.replaceAll('{{word}}', escapeHtml(word)) : ''}
         <button class="hw-play-btn" id="play-word">🔊</button>
         <div class="hw-input-wrap">
-          <input class="hw-answer-input" id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${placeholder}">
+          <input class="hw-answer-input" id="answer-input" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${placeholder}">
           ${inputControlsHtml('clear-answer')}
+          ${keyboardHtml()}
           <div class="hw-feedback" id="feedback"></div>
           <button class="btn btn-primary" id="submit-answer">Check ✓</button>
         </div>
@@ -213,10 +239,15 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
     }
     const input = document.getElementById('answer-input');
     document.getElementById('clear-answer').onclick = () => { input.value = ''; input.focus(); };
+    wireKeyboard(document.getElementById('onscreen-keyboard'), input);
     input.focus();
+    // Sentence dictation ignores punctuation/caps since the on-screen
+    // keyboard only has letters and a space bar.
+    const normalize = s => String(s).trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
     const check = () => {
-      const answer = input.value.trim().toLowerCase();
-      const correct = answer === target.toLowerCase();
+      const correct = sentenceMode
+        ? normalize(input.value) === normalize(target)
+        : input.value.trim().toLowerCase() === target.toLowerCase();
       finishRound(body, document.getElementById('feedback'), correct, word, () => { idx++; render(); });
       results.push({ word, correct });
     };
@@ -352,17 +383,24 @@ function runMissingLetters(words, activity = 'missing-letters') {
     const positions = pickMissingPositions(word, word.length > 7 ? 2 : 1);
     updateProgress(idx + 1, words.length);
     const body = document.getElementById('activity-body');
-    const letters = [...word].map((letter, i) => positions.includes(i) ? `<input class="ml-blank" data-pos="${i}" maxlength="1">` : `<span>${letter}</span>`).join('');
-    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Fill in the missing spelling</p><button class="hw-play-btn" id="play-word">🔊</button><div class="ml-word-display">${letters}</div>${inputControlsHtml('clear-missing')}<div class="hw-feedback" id="feedback"></div><button class="btn btn-primary" id="check-missing">Check ✓</button></section>`;
+    const letters = [...word].map((letter, i) => positions.includes(i) ? `<input class="ml-blank" inputmode="none" data-pos="${i}" maxlength="1">` : `<span>${letter}</span>`).join('');
+    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Fill in the missing spelling</p><button class="hw-play-btn" id="play-word">🔊</button><div class="ml-word-display">${letters}</div>${inputControlsHtml('clear-missing')}${keyboardHtml()}<div class="hw-feedback" id="feedback"></div><button class="btn btn-primary" id="check-missing">Check ✓</button></section>`;
     setTimeout(() => TTS.speak(word, STATE.settings.speechRate, 1.0), 250);
     document.getElementById('play-word').onclick = () => TTS.speak(word, STATE.settings.speechRate, 1.0);
+    const blanks = [...body.querySelectorAll('.ml-blank')];
+    let activeBlank = blanks[0] || null;
+    blanks.forEach(b => b.addEventListener('focus', () => { activeBlank = b; }));
     document.getElementById('clear-missing').onclick = () => {
-      body.querySelectorAll('.ml-blank').forEach(input => { input.value = ''; });
-      body.querySelector('.ml-blank')?.focus();
+      blanks.forEach(input => { input.value = ''; });
+      activeBlank = blanks[0] || null;
+      activeBlank?.focus();
     };
-    body.querySelector('.ml-blank')?.focus();
-    body.querySelectorAll('.ml-blank').forEach(input => {
+    // On-screen keyboard fills the active blank, then advances to the next empty one.
+    wireKeyboard(document.getElementById('onscreen-keyboard'), () => activeBlank);
+    activeBlank?.focus();
+    blanks.forEach(input => {
       input.onkeydown = e => { if (e.key === 'Enter') document.getElementById('check-missing').click(); };
+      input.addEventListener('input', () => { const next = blanks.find(b => !b.value); activeBlank = next || input; next?.focus(); });
     });
     document.getElementById('check-missing').onclick = () => {
       const correct = [...body.querySelectorAll('.ml-blank')].every(input => input.value.trim().toLowerCase() === word[Number(input.dataset.pos)]);
@@ -381,16 +419,48 @@ function runUnscramble(words, activity = 'unscramble') {
     const word = words[idx];
     updateProgress(idx + 1, words.length);
     const body = document.getElementById('activity-body');
-    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Unscramble the word</p><div class="scramble">${shuffle([...word]).join(' ')}</div><input class="hw-answer-input" id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="unscrambled word">${inputControlsHtml('clear-unscramble')}<div class="hw-feedback" id="feedback"></div><button class="btn btn-primary" id="check">Check ✓</button></section>`;
-    const input = document.getElementById('answer-input');
-    document.getElementById('clear-unscramble').onclick = () => { input.value = ''; input.focus(); };
-    input.focus();
-    input.onkeydown = e => { if (e.key === 'Enter') document.getElementById('check').click(); };
+    const scrambled = shuffle([...word]);
+    body.innerHTML = `<section class="activity-card-large apple-card">
+      <p class="eyebrow">Tap the letters in order to build the word</p>
+      <div class="unscramble-answer" id="unscramble-answer"></div>
+      <div class="letter-bank" id="letter-bank">${scrambled.map((ch, i) => `<button type="button" class="letter-block" data-i="${i}">${escapeHtml(ch)}</button>`).join('')}</div>
+      <div class="answer-actions">
+        <button class="btn btn-soft" id="undo-letter" type="button">⌫ Undo</button>
+        <button class="btn btn-soft" id="clear-unscramble" type="button">Clear</button>
+      </div>
+      <div class="hw-feedback" id="feedback"></div>
+      <button class="btn btn-primary" id="check">Check ✓</button>
+    </section>`;
+    const answerEl = document.getElementById('unscramble-answer');
+    const bank = document.getElementById('letter-bank');
+    const picked = []; // { letter, btn }
+    const refresh = () => {
+      answerEl.innerHTML = picked.length
+        ? picked.map(p => `<span class="answer-tile">${escapeHtml(p.letter)}</span>`).join('')
+        : '<span class="answer-placeholder">Tap letters below…</span>';
+    };
+    bank.querySelectorAll('.letter-block').forEach(btn => btn.onclick = () => {
+      if (btn.disabled) return;
+      picked.push({ letter: btn.textContent, btn });
+      btn.disabled = true;
+      refresh();
+    });
+    document.getElementById('undo-letter').onclick = () => {
+      const last = picked.pop();
+      if (last) last.btn.disabled = false;
+      refresh();
+    };
+    document.getElementById('clear-unscramble').onclick = () => {
+      picked.forEach(p => { p.btn.disabled = false; });
+      picked.length = 0;
+      refresh();
+    };
     document.getElementById('check').onclick = () => {
-      const correct = input.value.trim().toLowerCase() === word;
+      const correct = picked.map(p => p.letter).join('') === word;
       results.push({ word, correct });
       finishRound(body, document.getElementById('feedback'), correct, word, () => { idx++; render(); });
     };
+    refresh();
   }
   render();
 }
