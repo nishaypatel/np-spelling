@@ -41,6 +41,7 @@ const STATE = {
   user: null,
   familyId: null,
   currentWeekId: null,
+  manifest: null,
   words: [],
   wordData: {},
   settings: { ...DEFAULT_SETTINGS },
@@ -145,10 +146,6 @@ async function loadSettings() {
   applyTheme(STATE.settings.theme);
 }
 
-function getDefaultWeek() {
-  return JSON.parse(JSON.stringify(WEEK_WORDS));
-}
-
 function defaultSentencesForWord(word) {
   return [
     `Can you spell ${word}?`,
@@ -186,10 +183,15 @@ function enrichWordData(words, wordData = {}) {
 }
 
 async function loadCurrentWeek() {
-  const defaults = getDefaultWeek();
-  STATE.currentWeekId = defaults.weekId;
-  STATE.words = [...defaults.words];
-  STATE.wordData = enrichWordData(STATE.words, defaults.wordData);
+  const manifest = await loadWeeksManifest();
+  STATE.manifest = manifest;
+  const entry = manifest.weeks.find(w => w.weekId === manifest.currentWeekId)
+    || manifest.weeks[manifest.weeks.length - 1];
+  const full = await loadWeekData(entry);
+
+  STATE.currentWeekId = full.weekId || entry.weekId;
+  STATE.words = [...full.words];
+  STATE.wordData = enrichWordData(STATE.words, full.wordData || {});
 
   if (!STATE.familyId) return;
   try {
@@ -408,7 +410,14 @@ function renderSettings() {
     <section class="settings-card apple-card">
       <h2>Practice Games Shown</h2>
       <div class="game-toggle-grid" id="game-toggle-list"></div>
+    </section>
+    <section class="settings-card apple-card">
+      <h2>Word History</h2>
+      <p class="history-intro">Every week’s spelling list, in order across the columns.</p>
+      <div class="history-grid" id="history-grid"></div>
     </section>`;
+
+  renderWordHistory();
 
   const themeGrid = qs('theme-grid');
   themeGrid.innerHTML = THEMES.map(theme => `<button class="theme-card ${theme.id === STATE.settings.theme ? 'active' : ''}" data-theme="${theme.id}"><span>${theme.emoji}</span><b>${theme.name}</b></button>`).join('');
@@ -436,6 +445,25 @@ function renderSettings() {
     await saveSettings({ visibleGames });
     renderSettings();
   }));
+}
+
+function renderWordHistory() {
+  const grid = qs('history-grid');
+  if (!grid) return;
+  const weeks = STATE.manifest?.weeks || [];
+  if (!weeks.length) {
+    grid.innerHTML = '<p class="history-empty">No weeks saved yet.</p>';
+    return;
+  }
+  // Columns flow left-to-right; CSS wraps to a new row after every 5 weeks.
+  grid.innerHTML = weeks.map(week => {
+    const isCurrent = week.weekId === STATE.currentWeekId;
+    const words = (week.words || []).map(w => `<li>${escapeHtml(w)}</li>`).join('');
+    return `<div class="history-week${isCurrent ? ' current' : ''}">
+      <h3>${escapeHtml(week.label || week.weekId)}${isCurrent ? ' <span class="history-now">now</span>' : ''}</h3>
+      <ol class="history-words">${words}</ol>
+    </div>`;
+  }).join('');
 }
 
 function renderSegmented(containerId, options, current, onChange) {

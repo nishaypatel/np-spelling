@@ -1,110 +1,89 @@
+// Offline fallback data. The source of truth lives in data/weeks/*.json
+// (manifest + per-shard files) and is fetched at runtime by js/weeks.js.
+// This fallback keeps the app working if those files cannot be fetched
+// (e.g. opened from file://). It mirrors the latest/default week plus a
+// lightweight manifest so the Word History grid still renders.
+
+const FALLBACK_MANIFEST = {
+  currentWeekId: '2026-06-16',
+  weeksPerShard: 5,
+  weeks: [
+    {
+      weekId: '2026-06-09',
+      label: 'Week 1',
+      shard: 'shard-001.json',
+      words: ['unzip', 'unlock', 'unkind', 'unwell', 'unhappy', 'push', 'unlucky', 'unfair'],
+    },
+    {
+      weekId: '2026-06-16',
+      label: 'Week 2',
+      shard: 'shard-001.json',
+      words: ['hunting', 'playing', 'buzzing', 'jumping', 'pushing', 'thinking', 'asking', 'pull'],
+    },
+  ],
+};
+
+// Full data for the default week, used when the shard file cannot be fetched.
 const WEEK_WORDS = {
-  weekId: '2026-06-09',
-  words: ['unzip', 'unlock', 'unkind', 'unwell', 'unhappy', 'push', 'unlucky', 'unfair'],
+  weekId: '2026-06-16',
+  label: 'Week 2',
+  words: ['hunting', 'playing', 'buzzing', 'jumping', 'pushing', 'thinking', 'asking', 'pull'],
   wordData: {
-    unzip: {
-      chunks: ['un', 'zip'],
-      sentence: 'I can unzip my coat.',
-      sentences: [
-        'I can unzip my coat.',
-        'Mum can unzip the bag.',
-        'I unzip my red top.',
-        'Can you unzip it for me?',
-        'Sam will unzip his tent.'
-      ],
-      trickyPart: 'un',
-      wrongVersions: ['unzipp', 'unzipe']
+    hunting: {
+      chunks: ['hunt', 'ing'],
+      sentences: ['The cat is hunting a mouse.', 'We are hunting for shells.', 'The owl goes hunting at night.'],
+      family: '-ing suffix family',
+      trickyPart: 'ing',
+      wrongVersions: ['huntting', 'huting'],
     },
-    unlock: {
-      chunks: ['un', 'lock'],
-      sentence: 'Can you unlock the door?',
-      sentences: [
-        'Can you unlock the door?',
-        'Dad will unlock the gate.',
-        'I can unlock my box.',
-        'Please unlock the shed.',
-        'She will unlock the car.'
-      ],
-      trickyPart: 'un',
-      wrongVersions: ['onlock', 'unlok']
+    playing: {
+      chunks: ['play', 'ing'],
+      sentences: ['I am playing in the park.', 'The kids are playing tag.', 'She is playing with her doll.'],
+      family: '-ing suffix family',
+      trickyPart: 'ay',
+      wrongVersions: ['plaing', 'playin'],
     },
-    unkind: {
-      chunks: ['un', 'kind'],
-      sentence: 'It is unkind to say mean things.',
-      sentences: [
-        'It is unkind to say mean things.',
-        'It is unkind to push.',
-        'That was an unkind word.',
-        'Do not be unkind to Ben.',
-        'It is unkind to take toys.'
-      ],
-      trickyPart: 'un',
-      wrongVersions: ['onkind', 'unkined']
+    buzzing: {
+      chunks: ['buzz', 'ing'],
+      sentences: ['A bee is buzzing by the flower.', 'The fly keeps buzzing in the room.', 'My phone is buzzing on the table.'],
+      family: '-ing suffix family',
+      trickyPart: 'zz',
+      wrongVersions: ['buzing', 'buzzin'],
     },
-    unwell: {
-      chunks: ['un', 'well'],
-      sentence: 'I felt unwell so I stayed home.',
-      sentences: [
-        'I felt unwell so I stayed home.',
-        'Tom is unwell today.',
-        'She felt unwell at school.',
-        'The pup is unwell.',
-        'I am unwell in bed.'
-      ],
-      trickyPart: 'un',
-      wrongVersions: ['onwell', 'unwel']
+    jumping: {
+      chunks: ['jump', 'ing'],
+      sentences: ['The frog is jumping in the pond.', 'I love jumping on the bed.', 'The dog is jumping for the ball.'],
+      family: '-ing suffix family',
+      trickyPart: 'ing',
+      wrongVersions: ['jumpping', 'jumpin'],
     },
-    unhappy: {
-      chunks: ['un', 'hap', 'py'],
-      sentence: 'The dog looked unhappy in the rain.',
-      sentences: [
-        'The dog looked unhappy in the rain.',
-        'I felt unhappy when I fell.',
-        'The cat is unhappy now.',
-        'Sam was unhappy at lunch.',
-        'She looked unhappy on the bus.'
-      ],
-      trickyPart: 'happy',
-      wrongVersions: ['onhappy', 'unhapey']
-    },
-    push: {
-      chunks: ['pu', 'sh'],
-      sentence: 'Please push the door to open it.',
-      sentences: [
-        'Please push the door to open it.',
-        'I can push the swing.',
-        'Do not push in line.',
-        'Push the cart slowly.',
-        'Dad will push the pram.'
-      ],
+    pushing: {
+      chunks: ['push', 'ing'],
+      sentences: ['He is pushing the heavy box.', 'Please stop pushing your brother.', 'Mum is pushing the pram.'],
+      family: '-ing suffix family',
       trickyPart: 'sh',
-      wrongVersions: ['puch', 'poosh']
+      wrongVersions: ['pushhing', 'pushin'],
     },
-    unlucky: {
-      chunks: ['un', 'luck', 'y'],
-      sentence: 'It was unlucky that it rained.',
-      sentences: [
-        'It was unlucky that it rained.',
-        'I was unlucky in the game.',
-        'The unlucky cat got wet.',
-        'Sam felt unlucky today.',
-        'It was unlucky to miss the bus.'
-      ],
-      trickyPart: 'un',
-      wrongVersions: ['onlucky', 'unluckey']
+    thinking: {
+      chunks: ['think', 'ing'],
+      sentences: ['I am thinking about lunch.', 'She is thinking of a plan.', 'He sat thinking very hard.'],
+      family: '-ing suffix family',
+      trickyPart: 'th',
+      wrongVersions: ['thinkking', 'thinkin'],
     },
-    unfair: {
-      chunks: ['un', 'fair'],
-      sentence: 'It is unfair to push in the queue.',
-      sentences: [
-        'It is unfair to push in the queue.',
-        'That game was unfair.',
-        'It is unfair to take both.',
-        'She said it was unfair.',
-        'It is unfair to jump ahead.'
-      ],
-      trickyPart: 'un',
-      wrongVersions: ['onfair', 'unfare']
-    }
-  }
+    asking: {
+      chunks: ['ask', 'ing'],
+      sentences: ['I am asking for some help.', 'She is asking a good question.', 'He keeps asking for sweets.'],
+      family: '-ing suffix family',
+      trickyPart: 'sk',
+      wrongVersions: ['askking', 'asken'],
+    },
+    pull: {
+      chunks: ['pu', 'll'],
+      sentences: ['Please pull the rope hard.', 'I can pull the cart.', 'Pull the door to open it.'],
+      family: 'double l spelling family',
+      trickyPart: 'll',
+      wrongVersions: ['pul', 'poll'],
+    },
+  },
 };

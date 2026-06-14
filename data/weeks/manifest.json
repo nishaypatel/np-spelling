@@ -1,0 +1,18 @@
+{
+  "currentWeekId": "2026-06-16",
+  "weeksPerShard": 5,
+  "weeks": [
+    {
+      "weekId": "2026-06-09",
+      "label": "Week 1",
+      "shard": "shard-001.json",
+      "words": ["unzip", "unlock", "unkind", "unwell", "unhappy", "push", "unlucky", "unfair"]
+    },
+    {
+      "weekId": "2026-06-16",
+      "label": "Week 2",
+      "shard": "shard-001.json",
+      "words": ["hunting", "playing", "buzzing", "jumping", "pushing", "thinking", "asking", "pull"]
+    }
+  ]
+}

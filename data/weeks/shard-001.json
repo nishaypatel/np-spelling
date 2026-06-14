@@ -1,0 +1,184 @@
+{
+  "2026-06-09": {
+    "weekId": "2026-06-09",
+    "label": "Week 1",
+    "words": ["unzip", "unlock", "unkind", "unwell", "unhappy", "push", "unlucky", "unfair"],
+    "wordData": {
+      "unzip": {
+        "chunks": ["un", "zip"],
+        "sentences": [
+          "I can unzip my coat.",
+          "Mum can unzip the bag.",
+          "Can you unzip it for me?"
+        ],
+        "trickyPart": "un",
+        "wrongVersions": ["unzipp", "unzipe"]
+      },
+      "unlock": {
+        "chunks": ["un", "lock"],
+        "sentences": [
+          "Can you unlock the door?",
+          "Dad will unlock the gate.",
+          "She will unlock the car."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": ["onlock", "unlok"]
+      },
+      "unkind": {
+        "chunks": ["un", "kind"],
+        "sentences": [
+          "It is unkind to say mean things.",
+          "It is unkind to push.",
+          "Do not be unkind to Ben."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": ["onkind", "unkined"]
+      },
+      "unwell": {
+        "chunks": ["un", "well"],
+        "sentences": [
+          "I felt unwell so I stayed home.",
+          "Tom is unwell today.",
+          "The pup is unwell."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": ["onwell", "unwel"]
+      },
+      "unhappy": {
+        "chunks": ["un", "hap", "py"],
+        "sentences": [
+          "The dog looked unhappy in the rain.",
+          "I felt unhappy when I fell.",
+          "Sam was unhappy at lunch."
+        ],
+        "trickyPart": "happy",
+        "wrongVersions": ["onhappy", "unhapey"]
+      },
+      "push": {
+        "chunks": ["pu", "sh"],
+        "sentences": [
+          "Please push the door to open it.",
+          "I can push the swing.",
+          "Do not push in line."
+        ],
+        "trickyPart": "sh",
+        "wrongVersions": ["puch", "poosh"]
+      },
+      "unlucky": {
+        "chunks": ["un", "luck", "y"],
+        "sentences": [
+          "It was unlucky that it rained.",
+          "I was unlucky in the game.",
+          "Sam felt unlucky today."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": ["onlucky", "unluckey"]
+      },
+      "unfair": {
+        "chunks": ["un", "fair"],
+        "sentences": [
+          "It is unfair to push in the queue.",
+          "That game was unfair.",
+          "She said it was unfair."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": ["onfair", "unfare"]
+      }
+    }
+  },
+  "2026-06-16": {
+    "weekId": "2026-06-16",
+    "label": "Week 2",
+    "words": ["hunting", "playing", "buzzing", "jumping", "pushing", "thinking", "asking", "pull"],
+    "wordData": {
+      "hunting": {
+        "chunks": ["hunt", "ing"],
+        "sentences": [
+          "The cat is hunting a mouse.",
+          "We are hunting for shells.",
+          "The owl goes hunting at night."
+        ],
+        "family": "-ing suffix family",
+        "trickyPart": "ing",
+        "wrongVersions": ["huntting", "huting"]
+      },
+      "playing": {
+        "chunks": ["play", "ing"],
+        "sentences": [
+          "I am playing in the park.",
+          "The kids are playing tag.",
+          "She is playing with her doll."
+        ],
+        "family": "-ing suffix family",
+        "trickyPart": "ay",
+        "wrongVersions": ["plaing", "playin"]
+      },
+      "buzzing": {
+        "chunks": ["buzz", "ing"],
+        "sentences": [
+          "A bee is buzzing by the flower.",
+          "The fly keeps buzzing in the room.",
+          "My phone is buzzing on the table."
+        ],
+        "family": "-ing suffix family",
+        "trickyPart": "zz",
+        "wrongVersions": ["buzing", "buzzin"]
+      },
+      "jumping": {
+        "chunks": ["jump", "ing"],
+        "sentences": [
+          "The frog is jumping in the pond.",
+          "I love jumping on the bed.",
+          "The dog is jumping for the ball."
+        ],
+        "family": "-ing suffix family",
+        "trickyPart": "ing",
+        "wrongVersions": ["jumpping", "jumpin"]
+      },
+      "pushing": {
+        "chunks": ["push", "ing"],
+        "sentences": [
+          "He is pushing the heavy box.",
+          "Please stop pushing your brother.",
+          "Mum is pushing the pram."
+        ],
+        "family": "-ing suffix family",
+        "trickyPart": "sh",
+        "wrongVersions": ["pushhing", "pushin"]
+      },
+      "thinking": {
+        "chunks": ["think", "ing"],
+        "sentences": [
+          "I am thinking about lunch.",
+          "She is thinking of a plan.",
+          "He sat thinking very hard."
+        ],
+        "family": "-ing suffix family",
+        "trickyPart": "th",
+        "wrongVersions": ["thinkking", "thinkin"]
+      },
+      "asking": {
+        "chunks": ["ask", "ing"],
+        "sentences": [
+          "I am asking for some help.",
+          "She is asking a good question.",
+          "He keeps asking for sweets."
+        ],
+        "family": "-ing suffix family",
+        "trickyPart": "sk",
+        "wrongVersions": ["askking", "asken"]
+      },
+      "pull": {
+        "chunks": ["pu", "ll"],
+        "sentences": [
+          "Please pull the rope hard.",
+          "I can pull the cart.",
+          "Pull the door to open it."
+        ],
+        "family": "double l spelling family",
+        "trickyPart": "ll",
+        "wrongVersions": ["pul", "poll"]
+      }
+    }
+  }
+}
