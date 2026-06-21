@@ -1,5 +1,5 @@
 {
-  "currentWeekId": "2026-06-16",
+  "currentWeekId": "2026-06-23",
   "weeksPerShard": 5,
   "weeks": [
     {
@@ -13,6 +13,12 @@
       "label": "Week 2",
       "shard": "shard-001.json",
       "words": ["hunting", "playing", "buzzing", "jumping", "pushing", "thinking", "asking", "pull"]
+    },
+    {
+      "weekId": "2026-06-23",
+      "label": "Week 3",
+      "shard": "shard-001.json",
+      "words": ["dogs", "spends", "sings", "wishes", "pulls", "pushes", "peas", "full"]
     }
   ]
 }

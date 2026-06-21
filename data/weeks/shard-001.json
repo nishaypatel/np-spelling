@@ -180,5 +180,100 @@
         "wrongVersions": ["pul", "poll"]
       }
     }
+  },
+  "2026-06-23": {
+    "weekId": "2026-06-23",
+    "label": "Week 3",
+    "words": ["dogs", "spends", "sings", "wishes", "pulls", "pushes", "peas", "full"],
+    "wordData": {
+      "dogs": {
+        "chunks": ["dog", "s"],
+        "sentences": [
+          "The two dogs ran in the park.",
+          "My dogs like to play fetch.",
+          "Both dogs barked at the cat."
+        ],
+        "family": "adding -s plural family",
+        "trickyPart": "s",
+        "wrongVersions": ["dogz", "doggs"]
+      },
+      "spends": {
+        "chunks": ["spend", "s"],
+        "sentences": [
+          "She spends her money on books.",
+          "He spends a lot of time reading.",
+          "Dad spends Sunday in the garden."
+        ],
+        "family": "adding -s family",
+        "trickyPart": "sp",
+        "wrongVersions": ["spens", "spendz"]
+      },
+      "sings": {
+        "chunks": ["sing", "s"],
+        "sentences": [
+          "The bird sings every morning.",
+          "Mum sings me a song at night.",
+          "She sings in the school choir."
+        ],
+        "family": "adding -s family",
+        "trickyPart": "ng",
+        "wrongVersions": ["sins", "singz"]
+      },
+      "wishes": {
+        "chunks": ["wish", "es"],
+        "sentences": [
+          "She wishes for a sunny day.",
+          "He makes three wishes.",
+          "The fairy grants your wishes."
+        ],
+        "family": "adding -es family",
+        "trickyPart": "es",
+        "wrongVersions": ["wishs", "wishis"]
+      },
+      "pulls": {
+        "chunks": ["pull", "s"],
+        "sentences": [
+          "He pulls the cart up the hill.",
+          "The dog pulls on the lead.",
+          "She pulls the door open."
+        ],
+        "family": "adding -s family",
+        "trickyPart": "ll",
+        "wrongVersions": ["puls", "pullz"]
+      },
+      "pushes": {
+        "chunks": ["push", "es"],
+        "sentences": [
+          "She pushes the heavy box.",
+          "He pushes the swing for me.",
+          "Mum pushes the pram up the path."
+        ],
+        "family": "adding -es family",
+        "trickyPart": "es",
+        "wrongVersions": ["pushs", "pushis"]
+      },
+      "peas": {
+        "chunks": ["pea", "s"],
+        "sentences": [
+          "I eat my peas at dinner.",
+          "The peas are green and round.",
+          "She grows peas in the garden."
+        ],
+        "family": "adding -s plural family",
+        "trickyPart": "ea",
+        "wrongVersions": ["peez", "pees"]
+      },
+      "full": {
+        "chunks": ["fu", "ll"],
+        "sentences": [
+          "My cup is full of milk.",
+          "The box is full of toys.",
+          "I am full after lunch."
+        ],
+        "family": "double l spelling family",
+        "trickyPart": "ll",
+        "wrongVersions": ["ful", "fule"]
+      }
+    }
   }
 }
