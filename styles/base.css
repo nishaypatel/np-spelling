@@ -354,7 +354,7 @@ button { cursor: pointer; }
   text-align: center;
   font-family: Arial, sans-serif;
 }
-.hw-answer-input::placeholder { color: #3d2000; opacity: 1; }
+.hw-answer-input::placeholder { color: #8a8a8a; opacity: 1; }
 .hw-answer-input:focus, .word-input:focus { border-color: #ff6b6b; }
 .hw-feedback {
   min-height: 32px;
