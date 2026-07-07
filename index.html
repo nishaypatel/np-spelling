@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#ffd166">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Spell Squad">
   <title>Spell Squad</title>
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" id="theme-css" href="styles/themes.css">
@@ -92,7 +99,7 @@
     <header class="app-header compact-header">
       <button class="icon-btn" id="btn-back-from-activity" aria-label="Back">←</button>
       <h1 class="header-title" id="activity-title">Activity</h1>
-      <div class="header-actions"><div class="progress-pill" id="progress-pill">1 / 8</div><button class="icon-btn labeled top-parent">👨‍👩‍👧 <span>Parent</span></button><button class="icon-btn labeled top-settings">⚙️ <span>Settings</span></button><button class="icon-btn labeled top-signout">👋 <span>Sign out</span></button></div>
+      <div class="header-actions"><div class="progress-pill streak-pill hidden" id="streak-pill">🔥 0</div><div class="progress-pill" id="progress-pill">1 / 8</div><button class="icon-btn labeled top-parent">👨‍👩‍👧 <span>Parent</span></button><button class="icon-btn labeled top-settings">⚙️ <span>Settings</span></button><button class="icon-btn labeled top-signout">👋 <span>Sign out</span></button></div>
     </header>
     <main class="activity-body" id="activity-body"></main>
   </div>

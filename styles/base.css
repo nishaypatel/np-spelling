@@ -128,6 +128,8 @@ button { cursor: pointer; }
   z-index: 10;
   min-height: 72px;
   padding: 12px 20px;
+  /* When launched from the home screen the status bar overlays the page. */
+  padding-top: calc(12px + env(safe-area-inset-top));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -443,6 +445,23 @@ button { cursor: pointer; }
   font-weight: 700;
   font-size: 1rem;
 }
+.streak-pill { background: rgba(255,255,255,0.5); color: #1a1a2e; }
+.streak-note { font-size: 1.1rem; margin-top: 4px; }
+
+/* ── Speed Spell countdown ── */
+.round-timer {
+  display: inline-block;
+  margin: 0 auto 12px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.round-timer.urgent { color: #ffffff; background: var(--danger); border-color: var(--danger); }
 
 /* ── Activity specific ── */
 .look-cover-word, .scramble {
@@ -553,6 +572,26 @@ button { cursor: pointer; }
 .word-entry-item span { display: block; margin: 0 0 6px 6px; color: var(--text-muted); font-weight: 700; font-size: 1rem; }
 .form-wide { grid-column: 1 / -1; justify-self: start; }
 .danger-zone { border-color: rgba(255, 79, 109, .4); }
+.btn-compact { font-size: 1rem; padding: 12px 20px; justify-self: start; margin-top: 4px; }
+
+/* ── School test result chips ── */
+.mistake-intro { color: var(--text-muted); font-weight: 700; margin: 0 0 14px; }
+.mistake-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.mistake-chip {
+  min-height: 48px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  padding: 10px 18px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+.mistake-chip.marked {
+  border-color: var(--danger);
+  background: rgba(255, 79, 109, 0.12);
+}
+.mistake-chip.marked::after { content: ' ❌'; }
 
 /* ── Settings ── */
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }

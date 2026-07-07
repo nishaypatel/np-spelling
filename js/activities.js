@@ -131,14 +131,21 @@ window.TTS = TTS;
 
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-function startActivity(type) {
-  if (!STATE.words.length) { showToast('No words loaded yet!'); return; }
+function startActivity(type, customWords) {
+  let pool = Array.isArray(customWords) && customWords.length ? customWords : STATE.words;
+  if (type === 'my-tricky-words') pool = STATE.testMistakes;
+  if (!pool.length) {
+    showToast(type === 'my-tricky-words' ? 'No test words marked yet — tick them in the Parent Area first.' : 'No words loaded yet!');
+    return;
+  }
   TTS.cancel();
   TTS.unlock(); // still inside the tap gesture — lets the first word auto-play on iOS
-  const game = GAME_CATALOG.find(item => item.id === type) || GAME_CATALOG[0];
+  const game = GAME_CATALOG.find(item => item.id === type) || GAME_CATALOG.find(item => item.id === 'hear-write');
   document.getElementById('activity-title').textContent = `${game.emoji} ${game.name}`;
-  const orderedWords = ['test-mode', 'boss-round'].includes(type) ? [...STATE.words] : shuffle([...STATE.words]);
+  _updateStreakPill();
+  const orderedWords = ['test-mode', 'boss-round'].includes(type) ? [...pool] : shuffle([...pool]);
   const runners = {
+    'my-tricky-words': runTrickyTestWords,
     'hear-write': runWriteActivity,
     'look-cover-write': runLookCoverWrite,
     'build-sounds': runBuildSounds,
@@ -218,11 +225,13 @@ function soundMapHtml(word) {
   return `<div class="sound-map">${(getData(word).phonicsMap || []).map(pair => `<span><b>${escapeHtml(pair.sound)}</b> → ${escapeHtml(pair.spelling)}</span>`).join('')}</div>`;
 }
 
-function renderInputRound({ words, activity, intro, placeholder = 'write the word here', sentenceMode = false, preReveal = '' }) {
+function renderInputRound({ words, activity, intro, placeholder = 'write the word here', sentenceMode = false, preReveal = '', timerSeconds = 0 }) {
   let idx = 0;
   const results = [];
+  let timer = null;
+  const stopTimer = () => { clearInterval(timer); timer = null; };
   function render() {
-    if (idx >= words.length) { results.forEach(r => saveResult(r.word, activity, r.correct)); showResults(activity, results); return; }
+    if (idx >= words.length) { stopTimer(); results.forEach(r => saveResult(r.word, activity, r.correct)); showResults(activity, results); return; }
     const word = words[idx];
     const data = getData(word);
     updateProgress(idx + 1, words.length);
@@ -230,6 +239,7 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
     body.innerHTML = `
       <section class="activity-card-large apple-card">
         <p class="eyebrow">${intro}</p>
+        ${timerSeconds ? `<div class="round-timer" id="round-timer">⏱ ${timerSeconds}s</div>` : ''}
         ${preReveal ? preReveal.replaceAll('{{word}}', escapeHtml(word)) : ''}
         <button class="hw-play-btn" id="play-word" aria-label="Play the word again">🔊</button>
         <div class="hw-input-wrap">
@@ -259,6 +269,7 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
     const normalize = s => String(s).trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
     const check = () => {
       if (!input.value.trim()) { input.focus(); return; } // ignore accidental empty submits
+      stopTimer();
       const correct = sentenceMode
         ? normalize(input.value) === normalize(target)
         : input.value.trim().toLowerCase() === target.toLowerCase();
@@ -267,6 +278,21 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
     };
     document.getElementById('submit-answer').onclick = check;
     input.onkeydown = e => { if (e.key === 'Enter') check(); };
+    if (timerSeconds) {
+      let remaining = timerSeconds;
+      const timerEl = document.getElementById('round-timer');
+      timer = setInterval(() => {
+        if (!document.body.contains(timerEl)) { stopTimer(); return; } // player left mid-round
+        remaining -= 1;
+        timerEl.textContent = `⏱ ${remaining}s`;
+        timerEl.classList.toggle('urgent', remaining <= 5);
+        if (remaining <= 0) {
+          stopTimer();
+          finishRound(body, document.getElementById('feedback'), false, word, () => { idx++; render(); });
+          results.push({ word, correct: false });
+        }
+      }, 1000);
+    }
   }
   render();
 }
@@ -488,15 +514,33 @@ function runUnscramble(words, activity = 'unscramble') {
 
 function runMemoryMatch(words, activity = 'memory-match') { runBuildSounds(words, activity); }
 function runOddOneOut(words, activity = 'odd-one-out') { runTrickyBit(words, activity); }
-function runSpeedSpell(words, activity = 'speed-spell') { runWriteActivity(words.slice(0, 6), activity); }
+function runSpeedSpell(words, activity = 'speed-spell') {
+  renderInputRound({ words, activity, intro: 'Quick! Spell it before the timer runs out', timerSeconds: 20 });
+}
 function runBossRound(words, activity = 'boss-round') { runWriteActivity(words, activity); }
+// The school-test comeback game: hear each marked word, type it from memory.
+function runTrickyTestWords(words, activity = 'my-tricky-words') {
+  renderInputRound({ words, activity, intro: 'Listen and beat your tricky test word' });
+}
+
+// Streak of consecutive correct answers, kept across games within a session.
+let _streak = 0;
+function _updateStreakPill() {
+  const pill = document.getElementById('streak-pill');
+  if (!pill) return;
+  pill.textContent = `🔥 ${_streak}`;
+  pill.classList.toggle('hidden', _streak < 2);
+}
 
 function finishRound(body, feedback, correct, word, next) {
   body.querySelectorAll('button, input').forEach(el => { if (!el.id?.startsWith('next')) el.disabled = true; });
   feedback.className = `hw-feedback ${correct ? 'correct' : 'wrong'}`;
+  _streak = correct ? _streak + 1 : 0;
+  _updateStreakPill();
   if (correct) {
     const message = getPositiveMessage();
-    feedback.innerHTML = `${message}<div class="auto-next-note">Next word coming up…</div>`;
+    const streakNote = _streak >= 2 ? `<div class="streak-note">🔥 ${_streak} in a row!</div>` : '';
+    feedback.innerHTML = `${message}${streakNote}<div class="auto-next-note">Next word coming up…</div>`;
     TTS.speak(message, 1.0, 1.18).then(() => setTimeout(next, 350));
     return;
   }

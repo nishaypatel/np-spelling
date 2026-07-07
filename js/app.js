@@ -15,6 +15,9 @@ const DEFAULT_VISIBLE_GAMES = [
 ];
 
 const GAME_CATALOG = [
+  // `special: true` games are managed by the app (not the settings toggles):
+  // My Tricky Words appears automatically while test mistakes are marked.
+  { id: 'my-tricky-words', emoji: '⭐', name: 'My Tricky Words', desc: 'Beat the words from the school test', group: 'Recommended', defaultVisible: false, special: true },
   { id: 'hear-write', emoji: '👂', name: 'Hear & Write', desc: 'Listen and spell the word', group: 'Recommended', defaultVisible: true },
   { id: 'look-cover-write', emoji: '🙈', name: 'Look, Cover, Write, Check', desc: 'Study, hide, then spell', group: 'Recommended', defaultVisible: true },
   { id: 'build-sounds', emoji: '🧩', name: 'Build the Sounds', desc: 'Build words from chunks', group: 'Recommended', defaultVisible: true },
@@ -45,6 +48,7 @@ const STATE = {
   manifest: null,
   words: [],
   wordData: {},
+  testMistakes: [], // words marked wrong in the real school test
   settings: { ...DEFAULT_SETTINGS },
   results: [],
 };
@@ -57,9 +61,18 @@ const THEMES = [
   { id: 'football', name: 'Football', emoji: '⚽', headerColor: '#15803d' },
 ];
 
+// Offline app shell — see sw.js. Registered before Firebase init so the shell
+// still caches even if the Firebase CDN is unreachable.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(e => console.warn('sw register', e)));
+}
+
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db = firebase.firestore();
+// Offline cache: settings/words/results stay readable (and writes queue up)
+// without a connection. Must run before any other Firestore call.
+db.enablePersistence({ synchronizeTabs: true }).catch(e => console.warn('firestore persistence', e.code || e));
 
 function qs(id) { return document.getElementById(id); }
 function escapeHtml(value) {
@@ -199,6 +212,7 @@ async function applyWeekData(entry, full) {
   STATE.currentWeekId = full.weekId || entry.weekId;
   STATE.words = [...full.words];
   STATE.wordData = enrichWordData(STATE.words, full.wordData || {});
+  STATE.testMistakes = [];
 
   if (!STATE.familyId) return;
   try {
@@ -206,6 +220,9 @@ async function applyWeekData(entry, full) {
     if (doc.exists && Array.isArray(doc.data().words)) {
       STATE.words = doc.data().words.slice(0, 8).map(w => String(w).trim().toLowerCase()).filter(Boolean);
       STATE.wordData = enrichWordData(STATE.words, { ...(full.wordData || {}), ...(doc.data().wordData || {}) });
+    }
+    if (doc.exists && Array.isArray(doc.data().testMistakes)) {
+      STATE.testMistakes = doc.data().testMistakes.filter(w => STATE.words.includes(w));
     }
   } catch (e) {
     console.warn('applyWeekData', e);
@@ -217,13 +234,28 @@ async function saveWeeklyWords(words) {
   if (cleanWords.length !== 8) { showToast('Please enter exactly 8 words.'); return false; }
   STATE.words = cleanWords;
   STATE.wordData = enrichWordData(cleanWords, STATE.wordData);
+  STATE.testMistakes = STATE.testMistakes.filter(w => cleanWords.includes(w));
   await db.collection('families').doc(STATE.familyId).collection('weeks').doc(STATE.currentWeekId).set({
     words: cleanWords,
     wordData: STATE.wordData,
+    testMistakes: STATE.testMistakes,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
   showToast('This week’s words saved!');
   return true;
+}
+
+async function saveTestMistakes(mistakes) {
+  STATE.testMistakes = mistakes.filter(w => STATE.words.includes(w));
+  if (!STATE.familyId) return;
+  try {
+    await db.collection('families').doc(STATE.familyId).collection('weeks').doc(STATE.currentWeekId).set({
+      testMistakes: STATE.testMistakes,
+    }, { merge: true });
+  } catch (e) {
+    console.error('saveTestMistakes', e);
+    showToast('Could not save test results.');
+  }
 }
 
 async function saveResult(word, activity, correct) {
@@ -284,7 +316,11 @@ function renderWordCard(word) {
 }
 
 function renderPractice() {
-  const visibleGames = GAME_CATALOG.filter(game => STATE.settings.visibleGames.includes(game.id));
+  // My Tricky Words pins itself to the top while test mistakes are marked.
+  const specialGames = STATE.testMistakes.length
+    ? GAME_CATALOG.filter(game => game.special).map(game => ({ ...game, desc: `${STATE.testMistakes.length} word${STATE.testMistakes.length === 1 ? '' : 's'} to beat` }))
+    : [];
+  const visibleGames = [...specialGames, ...GAME_CATALOG.filter(game => !game.special && STATE.settings.visibleGames.includes(game.id))];
   const body = qs('practice-body');
   if (visibleGames.length <= 6) {
     body.innerHTML = `<section class="game-grid two-column">${visibleGames.map(renderGameCard).join('')}</section>`;
@@ -349,7 +385,12 @@ async function renderParent() {
     <section class="parent-summary">
       <div class="stat-card apple-card"><span>Monday Readiness Score</span><strong>${readiness}%</strong><em>${readinessLabel(readiness)}</em></div>
       <div class="stat-card apple-card"><span>Latest spelling test score</span><strong>${latestScore}</strong><em>${testResults.length ? 'Most recent test attempt' : 'Start a spelling test to track this'}</em></div>
-      <div class="stat-card apple-card"><span>Tricky words</span><strong>${trickyWords.length ? trickyWords.join(', ') : 'None yet 🎉'}</strong><em>Words under 70% accuracy</em></div>
+      <div class="stat-card apple-card"><span>Tricky words</span><strong>${trickyWords.length ? trickyWords.map(escapeHtml).join(', ') : 'None yet 🎉'}</strong><em>Words under 70% accuracy</em>${trickyWords.length ? '<button class="btn btn-primary btn-compact" id="btn-practise-tricky">🎯 Practise these now</button>' : ''}</div>
+    </section>
+    <section class="apple-card">
+      <h2>School test results</h2>
+      <p class="mistake-intro">Tap the words that were spelled wrong in the real spelling test. They unlock the ⭐ My Tricky Words game on the Practice screen.</p>
+      <div class="mistake-chips" id="mistake-chips">${STATE.words.map(word => `<button class="mistake-chip${STATE.testMistakes.includes(word) ? ' marked' : ''}" data-mistake="${escapeHtml(word)}">${escapeHtml(word)}</button>`).join('')}</div>
     </section>
     <section class="apple-card">
       <h2>Progress summary</h2>
@@ -375,6 +416,13 @@ async function renderParent() {
     renderParent();
   });
   qs('btn-reset-progress').addEventListener('click', resetProgressWithConfirm);
+  qs('btn-practise-tricky')?.addEventListener('click', () => startActivity('hear-write', trickyWords));
+  // Toggle in place (no full re-render — renderParent refetches results).
+  body.querySelectorAll('[data-mistake]').forEach(chip => chip.addEventListener('click', () => {
+    chip.classList.toggle('marked');
+    const marked = [...body.querySelectorAll('.mistake-chip.marked')].map(el => el.dataset.mistake);
+    saveTestMistakes(marked);
+  }));
 }
 
 async function resetProgressWithConfirm() {
@@ -461,7 +509,7 @@ function renderSettings() {
     const voiceLabel = STATE.settings.voiceGender === 'male' ? 'male' : 'female';
     TTS.speak(`Hello, I am the ${voiceLabel} voice for Spell Squad`, STATE.settings.speechRate, 1.05);
   };
-  qs('game-toggle-list').innerHTML = GAME_CATALOG.map(game => `<button class="theme-card ${STATE.settings.visibleGames.includes(game.id) ? 'active' : ''}" data-game-toggle="${game.id}"><span>${game.emoji}</span><b>${game.name}</b></button>`).join('');
+  qs('game-toggle-list').innerHTML = GAME_CATALOG.filter(game => !game.special).map(game => `<button class="theme-card ${STATE.settings.visibleGames.includes(game.id) ? 'active' : ''}" data-game-toggle="${game.id}"><span>${game.emoji}</span><b>${game.name}</b></button>`).join('');
   qs('game-toggle-list').querySelectorAll('[data-game-toggle]').forEach(tile => tile.addEventListener('click', async () => {
     const visibleGames = STATE.settings.visibleGames.includes(tile.dataset.gameToggle)
       ? STATE.settings.visibleGames.filter(id => id !== tile.dataset.gameToggle)
@@ -519,7 +567,9 @@ function showResults(activityType, resultsArr) {
   qs('results-title').textContent = pct === 100 ? 'Perfect Score! 🎉' : pct >= 75 ? 'Great Work! 🌟' : pct >= 50 ? 'Good Try! Keep practising!' : 'Keep going — you’ll get there!';
   qs('results-score').textContent = `${correct} / ${resultsArr.length}`;
   qs('results-list').innerHTML = resultsArr.map(r => `<div class="result-row"><span>${escapeHtml(r.word)}</span><span>${r.correct ? '✅' : '❌'}</span></div>`).join('');
-  qs('btn-try-again').onclick = () => startActivity(activityType);
+  // Replay the same word set (matters when the round used a custom list,
+  // e.g. tricky-word practice from the Parent Area).
+  qs('btn-try-again').onclick = () => startActivity(activityType, resultsArr.map(r => r.word));
   qs('btn-results-home').onclick = () => { renderHome(); showScreen('screen-home'); };
   showScreen('screen-results');
 }
@@ -527,7 +577,15 @@ function showResults(activityType, resultsArr) {
 function wireNavigation() {
   qs('btn-signin').addEventListener('click', () => {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(err => showToast('Sign-in failed: ' + err.message));
+    auth.signInWithPopup(provider).catch(err => {
+      // Popups are often blocked when launched from the home screen
+      // (standalone mode) — fall back to a full-page redirect.
+      if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'].includes(err.code)) {
+        auth.signInWithRedirect(provider).catch(e2 => showToast('Sign-in failed: ' + e2.message));
+      } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        showToast('Sign-in failed: ' + err.message);
+      }
+    });
   });
   document.querySelectorAll('#btn-signout, .top-signout').forEach(btn => btn.addEventListener('click', () => auth.signOut()));
   document.querySelectorAll('#btn-parent, .top-parent').forEach(btn => btn.addEventListener('click', async () => { await renderParent(); showScreen('screen-parent'); }));
@@ -563,6 +621,7 @@ auth.onAuthStateChanged(async user => {
     STATE.user = null;
     STATE.familyId = null;
     STATE.results = [];
+    STATE.testMistakes = [];
     showScreen('screen-login');
   }
 });
