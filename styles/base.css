@@ -205,6 +205,22 @@ button { cursor: pointer; }
   margin-top: 8px;
 }
 
+/* ── Home streak stats ── */
+.home-stats { display: flex; flex-wrap: wrap; gap: 10px; margin: -6px 0 20px; }
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  border: 2px solid var(--border);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+.stat-pill b { color: var(--text); font-size: 1.15rem; }
+
 /* ── Main menu cards ── */
 /* Menu/activity cards keep fixed pastel backgrounds, so their text stays dark
    in every theme. */

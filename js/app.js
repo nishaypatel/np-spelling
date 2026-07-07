@@ -51,6 +51,7 @@ const STATE = {
   testMistakes: [], // words marked wrong in the real school test
   settings: { ...DEFAULT_SETTINGS },
   results: [],
+  stats: { bestStreak: 0, dayStreak: 0, lastPracticeDay: null },
 };
 
 const THEMES = [
@@ -160,6 +161,60 @@ async function loadSettings() {
     console.warn('loadSettings', e);
   }
   applyTheme(STATE.settings.theme);
+}
+
+// ── Streak stats (best run + days practised in a row) ─────
+function localDay(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+async function loadStats() {
+  STATE.stats = { bestStreak: 0, dayStreak: 0, lastPracticeDay: null };
+  if (!STATE.familyId) return;
+  try {
+    const doc = await db.collection('families').doc(STATE.familyId).collection('settings').doc('stats').get();
+    if (doc.exists) STATE.stats = { ...STATE.stats, ...doc.data() };
+  } catch (e) {
+    console.warn('loadStats', e);
+  }
+}
+
+async function saveStats() {
+  if (!STATE.familyId) return;
+  try {
+    await db.collection('families').doc(STATE.familyId).collection('settings').doc('stats').set(STATE.stats, { merge: true });
+  } catch (e) {
+    console.warn('saveStats', e);
+  }
+}
+
+// Called after every answered round. Updates the day streak (any practice
+// counts) and the best correct-run streak. Returns true on a new best.
+function recordPracticeStats(streak) {
+  const stats = STATE.stats;
+  let changed = false;
+  let newBest = false;
+  const today = localDay();
+  if (stats.lastPracticeDay !== today) {
+    const yesterday = localDay(new Date(Date.now() - 86400000));
+    stats.dayStreak = stats.lastPracticeDay === yesterday ? stats.dayStreak + 1 : 1;
+    stats.lastPracticeDay = today;
+    changed = true;
+  }
+  if (streak > stats.bestStreak) {
+    stats.bestStreak = streak;
+    changed = newBest = true;
+  }
+  if (changed) saveStats();
+  return newBest;
+}
+
+// Day streak shown to the user: stale streaks (no practice since the day
+// before yesterday) display as 0 until they practise again.
+function currentDayStreak() {
+  const { dayStreak, lastPracticeDay } = STATE.stats;
+  const active = lastPracticeDay === localDay() || lastPracticeDay === localDay(new Date(Date.now() - 86400000));
+  return active ? dayStreak : 0;
 }
 
 function defaultSentencesForWord(word) {
@@ -288,6 +343,13 @@ function setWeekLabel() {
 function renderHome() {
   setWeekLabel();
   applyTheme(STATE.settings.theme);
+  const statsRow = qs('home-stats');
+  const dayStreak = currentDayStreak();
+  const best = STATE.stats.bestStreak;
+  statsRow.classList.toggle('hidden', !best && !dayStreak);
+  statsRow.innerHTML = `
+    <div class="stat-pill">🔥 Best run <b>${best}</b> word${best === 1 ? '' : 's'}</div>
+    <div class="stat-pill">📅 <b>${dayStreak}</b> day${dayStreak === 1 ? '' : 's'} in a row</div>`;
 }
 
 function renderWords() {
@@ -614,6 +676,7 @@ auth.onAuthStateChanged(async user => {
     STATE.user = user;
     STATE.familyId = FAMILY_MAP[email];
     await loadSettings();
+    await loadStats();
     await loadCurrentWeek();
     renderHome();
     showScreen('screen-home');
@@ -622,6 +685,7 @@ auth.onAuthStateChanged(async user => {
     STATE.familyId = null;
     STATE.results = [];
     STATE.testMistakes = [];
+    STATE.stats = { bestStreak: 0, dayStreak: 0, lastPracticeDay: null };
     showScreen('screen-login');
   }
 });

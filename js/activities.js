@@ -537,9 +537,12 @@ function finishRound(body, feedback, correct, word, next) {
   feedback.className = `hw-feedback ${correct ? 'correct' : 'wrong'}`;
   _streak = correct ? _streak + 1 : 0;
   _updateStreakPill();
+  const newBest = recordPracticeStats(_streak);
   if (correct) {
     const message = getPositiveMessage();
-    const streakNote = _streak >= 2 ? `<div class="streak-note">🔥 ${_streak} in a row!</div>` : '';
+    const streakNote = newBest && _streak >= 2
+      ? `<div class="streak-note">🏆 New best: ${_streak} in a row!</div>`
+      : _streak >= 2 ? `<div class="streak-note">🔥 ${_streak} in a row!</div>` : '';
     feedback.innerHTML = `${message}${streakNote}<div class="auto-next-note">Next word coming up…</div>`;
     TTS.speak(message, 1.0, 1.18).then(() => setTimeout(next, 350));
     return;
