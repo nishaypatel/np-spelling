@@ -50,11 +50,11 @@ const STATE = {
 };
 
 const THEMES = [
-  { id: 'rainbow', name: 'Rainbow Squad', emoji: '🌈' },
-  { id: 'ocean', name: 'Ocean', emoji: '🐬' },
-  { id: 'jungle', name: 'Jungle', emoji: '🦜' },
-  { id: 'space', name: 'Space', emoji: '🚀' },
-  { id: 'football', name: 'Football', emoji: '⚽' },
+  { id: 'rainbow', name: 'Rainbow Squad', emoji: '🌈', headerColor: '#ffd166' },
+  { id: 'ocean', name: 'Ocean', emoji: '🐬', headerColor: '#0284c7' },
+  { id: 'jungle', name: 'Jungle', emoji: '🦜', headerColor: '#16a34a' },
+  { id: 'space', name: 'Space', emoji: '🚀', headerColor: '#2d3166' },
+  { id: 'football', name: 'Football', emoji: '⚽', headerColor: '#15803d' },
 ];
 
 firebase.initializeApp(FIREBASE_CONFIG);
@@ -92,6 +92,7 @@ function applyTheme(themeId) {
   document.body.classList.add('theme-' + safeTheme);
   const theme = THEMES.find(t => t.id === safeTheme);
   document.querySelectorAll('.brand-bubble, .header-mascot, .results-mascot').forEach(el => { el.textContent = theme?.emoji || '✨'; });
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme?.headerColor || '#ffd166');
 }
 
 
@@ -221,7 +222,6 @@ async function saveWeeklyWords(words) {
     wordData: STATE.wordData,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
-  renderWords();
   showToast('This week’s words saved!');
   return true;
 }
@@ -276,7 +276,7 @@ function renderWordCard(word) {
   const data = STATE.wordData[word] || autoDetectPatterns(word);
   const chunks = data.chunks || [word];
   return `<article class="word-card">
-    <button class="mini-sound" data-say-word="${escapeHtml(word)}">🔊</button>
+    <button class="mini-sound" data-say-word="${escapeHtml(word)}" aria-label="Hear ${escapeHtml(word)}">🔊</button>
     <strong>${escapeHtml(word)}</strong>
     <div class="phonics-chunks">${chunks.map((chunk, index) => `<button class="phonics-chunk chunk-${(index % 4) + 1}" data-say-chunk="${escapeHtml(chunk)}">${escapeHtml(chunk)}</button>`).join('')}</div>
     <small>Pattern: ${escapeHtml(data.family || 'spelling sounds')} • Tricky bit: <b>${escapeHtml(data.trickyPart || chunks[chunks.length - 1])}</b></small>
@@ -444,7 +444,6 @@ function renderSettings() {
     { label: '📱 Device', value: 'device' },
   ], STATE.settings.voiceEngine, async value => {
     await saveSettings({ voiceEngine: value });
-    renderSettings();
     showToast('Voice engine saved!');
   });
 

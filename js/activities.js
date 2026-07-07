@@ -44,24 +44,39 @@ function _getAudioCtx() {
 
 let _azureSource = null;
 
-// Calls our own /api/tts serverless proxy, which holds the Azure key
-// server-side (as a Vercel env var) — the key is never sent to the browser.
-async function _azureSpeak(text, rate = 0.75) {
-  const ctx = _getAudioCtx(); // unlock AudioContext synchronously before the async fetch
+// Decoded-audio cache: replaying a word (or the same praise phrase) costs no
+// network round-trip. Keyed by text|rate|gender, capped to the newest entries.
+const _audioCache = new Map();
+const AUDIO_CACHE_MAX = 60;
+
+async function _fetchAzureAudio(ctx, text, rate) {
+  const gender = STATE?.settings?.voiceGender === 'male' ? 'male' : 'female';
+  const key = `${gender}|${rate}|${text}`;
+  if (_audioCache.has(key)) {
+    const buf = _audioCache.get(key);
+    _audioCache.delete(key); _audioCache.set(key, buf); // keep recently used
+    return buf;
+  }
   const res = await fetch('/api/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      text,
-      rate,
-      gender: STATE?.settings?.voiceGender === 'male' ? 'male' : 'female',
-    }),
+    body: JSON.stringify({ text, rate, gender }),
   });
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}));
     throw new Error(`TTS proxy ${res.status}: ${detail.error || 'unknown'}`);
   }
   const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
+  _audioCache.set(key, decoded);
+  if (_audioCache.size > AUDIO_CACHE_MAX) _audioCache.delete(_audioCache.keys().next().value);
+  return decoded;
+}
+
+// Calls our own /api/tts serverless proxy, which holds the Azure key
+// server-side (as a Vercel env var) — the key is never sent to the browser.
+async function _azureSpeak(text, rate = 0.75) {
+  const ctx = _getAudioCtx(); // unlock AudioContext synchronously before the async fetch
+  const decoded = await _fetchAzureAudio(ctx, text, rate);
   return new Promise(resolve => {
     if (_azureSource) { try { _azureSource.stop(); } catch (e) {} }
     const src = ctx.createBufferSource();
@@ -72,13 +87,27 @@ async function _azureSpeak(text, rate = 0.75) {
 
 // ── TTS dispatcher ──────────────────────────────────────────
 const TTS = {
+  _warnedFallback: false,
+  // iOS only allows audio started from a user gesture. Call this synchronously
+  // inside a tap handler so the auto-played word 250ms later is not muted.
+  unlock() {
+    try {
+      if ((STATE?.settings?.voiceEngine || 'azure') === 'azure') _getAudioCtx();
+      else if ('speechSynthesis' in window && !window.speechSynthesis.speaking) {
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+      }
+    } catch (e) { /* unlock is best-effort */ }
+  },
   async speak(text, rate = STATE?.settings?.speechRate || 0.75, pitch = 1.05) {
     const engine = STATE?.settings?.voiceEngine || 'azure';
     if (engine === 'azure') {
       try { return await _azureSpeak(text, rate); }
       catch (e) {
         console.warn('Azure TTS:', e.message);
-        if (typeof showToast === 'function') showToast('⚠️ Azure voice error: ' + e.message, 4000);
+        if (!TTS._warnedFallback && typeof showToast === 'function') {
+          TTS._warnedFallback = true;
+          showToast('Azure voice unavailable — using the device voice.', 3500);
+        }
         return _deviceSpeak(text, rate, pitch);
       }
     }
@@ -102,33 +131,10 @@ window.TTS = TTS;
 
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-function detectWordPatterns(word) {
-  const knownDigraphs = ['igh', 'air', 'ear', 'ure', 'sh', 'ch', 'th', 'ck', 'ng', 'ai', 'ee', 'oa', 'oo', 'ar', 'or', 'er', 'ir', 'ur', 'ow', 'oi', 'oy'];
-  const chunks = [];
-  let i = 0;
-  while (i < word.length) {
-    const tri = word.slice(i, i + 3);
-    const duo = word.slice(i, i + 2);
-    if (knownDigraphs.includes(tri)) { chunks.push(tri); i += 3; }
-    else if (knownDigraphs.includes(duo)) { chunks.push(duo); i += 2; }
-    else if (word.startsWith('un') && i === 0) { chunks.push('un'); i += 2; }
-    else { chunks.push(word[i]); i += 1; }
-  }
-  const family = word.startsWith('un') ? 'un- prefix family' : knownDigraphs.find(pattern => word.includes(pattern)) ? `${knownDigraphs.find(pattern => word.includes(pattern))} sound family` : 'single sound spelling';
-  const trickyPart = word.startsWith('un') ? 'un' : chunks.find(chunk => chunk.length > 1) || word.slice(-1);
-  return {
-    chunks,
-    family,
-    trickyPart,
-    phonicsMap: chunks.map(chunk => ({ sound: chunk, spelling: chunk })),
-    sentence: `Can you use ${word} in a sentence?`,
-    wrongVersions: [makeSimpleMistake(word, []), makeSimpleMistake(word, [makeSimpleMistake(word, [])])],
-  };
-}
-
 function startActivity(type) {
   if (!STATE.words.length) { showToast('No words loaded yet!'); return; }
   TTS.cancel();
+  TTS.unlock(); // still inside the tap gesture — lets the first word auto-play on iOS
   const game = GAME_CATALOG.find(item => item.id === type) || GAME_CATALOG[0];
   document.getElementById('activity-title').textContent = `${game.emoji} ${game.name}`;
   const orderedWords = ['test-mode', 'boss-round'].includes(type) ? [...STATE.words] : shuffle([...STATE.words]);
@@ -161,7 +167,7 @@ function shuffle(arr) {
 }
 
 function updateProgress(current, total) { document.getElementById('progress-pill').textContent = `${current} / ${total}`; }
-function getData(word) { return STATE.wordData[word] || detectWordPatterns(word); }
+function getData(word) { return STATE.wordData[word] || autoDetectPatterns(word); }
 function pickSentence(word, wordData = {}) {
   const sentences = Array.isArray(wordData.sentences) ? wordData.sentences.filter(Boolean) : [];
   const choices = sentences.length ? sentences : [wordData.sentence || `Can you spell ${word}?`];
@@ -188,7 +194,7 @@ function keyboardHtml() {
   return `<div class="onscreen-keyboard" id="onscreen-keyboard">${rows}
     <div class="kb-row">
       <button type="button" class="kb-key kb-space" data-key=" ">space</button>
-      <button type="button" class="kb-key kb-back" data-action="backspace">⌫</button>
+      <button type="button" class="kb-key kb-back" data-action="backspace" aria-label="Delete letter">⌫</button>
     </div>
   </div>`;
 }
@@ -212,7 +218,7 @@ function soundMapHtml(word) {
   return `<div class="sound-map">${(getData(word).phonicsMap || []).map(pair => `<span><b>${escapeHtml(pair.sound)}</b> → ${escapeHtml(pair.spelling)}</span>`).join('')}</div>`;
 }
 
-function renderInputRound({ words, activity, intro, placeholder = 'write the word here', sentenceMode = false, preReveal = '', noPeek = false }) {
+function renderInputRound({ words, activity, intro, placeholder = 'write the word here', sentenceMode = false, preReveal = '' }) {
   let idx = 0;
   const results = [];
   function render() {
@@ -225,12 +231,12 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
       <section class="activity-card-large apple-card">
         <p class="eyebrow">${intro}</p>
         ${preReveal ? preReveal.replaceAll('{{word}}', escapeHtml(word)) : ''}
-        <button class="hw-play-btn" id="play-word">🔊</button>
+        <button class="hw-play-btn" id="play-word" aria-label="Play the word again">🔊</button>
         <div class="hw-input-wrap">
-          <input class="hw-answer-input" id="answer-input" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${placeholder}">
+          <input class="hw-answer-input" id="answer-input" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${placeholder}" aria-label="Your answer">
           ${inputControlsHtml('clear-answer')}
           ${keyboardHtml()}
-          <div class="hw-feedback" id="feedback"></div>
+          <div class="hw-feedback" id="feedback" aria-live="polite"></div>
           <button class="btn btn-primary" id="submit-answer">Check ✓</button>
         </div>
       </section>`;
@@ -252,6 +258,7 @@ function renderInputRound({ words, activity, intro, placeholder = 'write the wor
     // keyboard only has letters and a space bar.
     const normalize = s => String(s).trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
     const check = () => {
+      if (!input.value.trim()) { input.focus(); return; } // ignore accidental empty submits
       const correct = sentenceMode
         ? normalize(input.value) === normalize(target)
         : input.value.trim().toLowerCase() === target.toLowerCase();
@@ -282,7 +289,7 @@ function runDictationSentence(words, activity = 'dictation-sentence') {
 }
 
 function runTestMode(words) {
-  renderInputRound({ words, activity: 'test-mode', intro: 'Spelling Test — just like school', noPeek: true });
+  renderInputRound({ words, activity: 'test-mode', intro: 'Spelling Test — just like school' });
 }
 
 function runBuildSounds(words, activity = 'build-sounds') {
@@ -297,11 +304,11 @@ function runBuildSounds(words, activity = 'build-sounds') {
     body.innerHTML = `
       <section class="activity-card-large apple-card">
         <p class="eyebrow">Build the sounds in order</p>
-        <button class="hw-play-btn" id="play-word">🔊</button>
+        <button class="hw-play-btn" id="play-word" aria-label="Play the word again">🔊</button>
         <div class="build-target" id="build-target"></div>
         <button class="btn btn-secondary" id="reset-build">Reset ↺</button>
         <div class="chunk-bank">${shuffle([...chunks]).map(chunk => `<button class="phonics-chunk chunk-choice" data-chunk="${escapeHtml(chunk)}">${escapeHtml(chunk)}</button>`).join('')}</div>
-        <div class="hw-feedback" id="feedback"></div>
+        <div class="hw-feedback" id="feedback" aria-live="polite"></div>
         <button class="btn btn-primary" id="check-build">Check ✓</button>
       </section>`;
     setTimeout(() => TTS.sayWord(word, getData(word)), 250);
@@ -315,6 +322,7 @@ function runBuildSounds(words, activity = 'build-sounds') {
       body.querySelectorAll('.chunk-choice').forEach(btn => { btn.disabled = false; });
     };
     document.getElementById('check-build').onclick = () => {
+      if (!picked.length) return; // nothing built yet
       const correct = picked.join('') === word;
       results.push({ word, correct });
       finishRound(body, document.getElementById('feedback'), correct, word, () => { idx++; render(); });
@@ -335,12 +343,13 @@ function runTapSound(words, activity = 'tap-sound') {
     const body = document.getElementById('activity-body');
     body.innerHTML = `
       <section class="activity-card-large apple-card">
-        <p class="eyebrow">Tap the spelling for this sound</p>
-        <h2 class="target-sound">🔊 ${escapeHtml(target)}</h2>
+        <p class="eyebrow">Listen, then tap the matching spelling</p>
+        <h2 class="target-sound">🔊 ?</h2>
         <button class="btn btn-soft" id="play-target">Hear sound</button>
         <div class="tap-word">${chunks.map((chunk, index) => `<button class="phonics-chunk chunk-${(index % 4) + 1}" data-chunk="${escapeHtml(chunk)}">${escapeHtml(chunk)}</button>`).join('')}</div>
-        <div class="hw-feedback" id="feedback"></div>
+        <div class="hw-feedback" id="feedback" aria-live="polite"></div>
       </section>`;
+    setTimeout(() => TTS.speak(target, STATE.settings.speechRate, 1.0), 250);
     document.getElementById('play-target').onclick = () => TTS.speak(target, STATE.settings.speechRate, 1.0);
     body.querySelectorAll('[data-chunk]').forEach(btn => btn.onclick = () => {
       const correct = btn.dataset.chunk === target;
@@ -359,16 +368,19 @@ function runTrickyBit(words, activity = 'tricky-bit') {
     const word = words[idx];
     const data = getData(word);
     updateProgress(idx + 1, words.length);
-    const wrongs = shuffle([...new Set([...(data.wrongVersions || []), makeSimpleMistake(word, [])])]).slice(0, 2);
+    // Always offer two wrong spellings, even when the word data provides none.
+    const wrongSet = new Set((data.wrongVersions || []).filter(v => v && v !== word));
+    for (let guard = 0; wrongSet.size < 2 && guard < 10; guard++) wrongSet.add(makeSimpleMistake(word, [...wrongSet]));
+    const wrongs = shuffle([...wrongSet]).slice(0, 2);
     const options = shuffle([word, ...wrongs]);
     const body = document.getElementById('activity-body');
     body.innerHTML = `
       <section class="activity-card-large apple-card">
         <p class="eyebrow">Find the word with the correct tricky bit</p>
         <div class="red-word">🔴 Tricky bit: ${escapeHtml(data.trickyPart || '')}</div>
-        <button class="hw-play-btn" id="play-word">🔊</button>
+        <button class="hw-play-btn" id="play-word" aria-label="Play the word again">🔊</button>
         <div class="fix-options">${options.map(option => `<button class="fix-option" data-word="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join('')}</div>
-        <div class="hw-feedback" id="feedback"></div>
+        <div class="hw-feedback" id="feedback" aria-live="polite"></div>
       </section>`;
     setTimeout(() => TTS.speak(word, STATE.settings.speechRate, 1.0), 250);
     document.getElementById('play-word').onclick = () => TTS.speak(word, STATE.settings.speechRate, 1.0);
@@ -391,7 +403,7 @@ function runMissingLetters(words, activity = 'missing-letters') {
     updateProgress(idx + 1, words.length);
     const body = document.getElementById('activity-body');
     const letters = [...word].map((letter, i) => positions.includes(i) ? `<input class="ml-blank" inputmode="none" data-pos="${i}" maxlength="1">` : `<span>${letter}</span>`).join('');
-    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Fill in the missing spelling</p><button class="hw-play-btn" id="play-word">🔊</button><div class="ml-word-display">${letters}</div>${inputControlsHtml('clear-missing')}${keyboardHtml()}<div class="hw-feedback" id="feedback"></div><button class="btn btn-primary" id="check-missing">Check ✓</button></section>`;
+    body.innerHTML = `<section class="activity-card-large apple-card"><p class="eyebrow">Fill in the missing spelling</p><button class="hw-play-btn" id="play-word" aria-label="Play the word again">🔊</button><div class="ml-word-display">${letters}</div>${inputControlsHtml('clear-missing')}${keyboardHtml()}<div class="hw-feedback" id="feedback" aria-live="polite"></div><button class="btn btn-primary" id="check-missing">Check ✓</button></section>`;
     setTimeout(() => TTS.speak(word, STATE.settings.speechRate, 1.0), 250);
     document.getElementById('play-word').onclick = () => TTS.speak(word, STATE.settings.speechRate, 1.0);
     const blanks = [...body.querySelectorAll('.ml-blank')];
@@ -410,6 +422,7 @@ function runMissingLetters(words, activity = 'missing-letters') {
       input.addEventListener('input', () => { const next = blanks.find(b => !b.value); activeBlank = next || input; next?.focus(); });
     });
     document.getElementById('check-missing').onclick = () => {
+      if (blanks.some(input => !input.value.trim())) { activeBlank?.focus(); return; } // wait until every gap is filled
       const correct = [...body.querySelectorAll('.ml-blank')].every(input => input.value.trim().toLowerCase() === word[Number(input.dataset.pos)]);
       results.push({ word, correct });
       finishRound(body, document.getElementById('feedback'), correct, word, () => { idx++; render(); });
@@ -435,7 +448,7 @@ function runUnscramble(words, activity = 'unscramble') {
         <button class="btn btn-soft" id="undo-letter" type="button">⌫ Undo</button>
         <button class="btn btn-soft" id="clear-unscramble" type="button">Clear</button>
       </div>
-      <div class="hw-feedback" id="feedback"></div>
+      <div class="hw-feedback" id="feedback" aria-live="polite"></div>
       <button class="btn btn-primary" id="check">Check ✓</button>
     </section>`;
     const answerEl = document.getElementById('unscramble-answer');
@@ -463,6 +476,7 @@ function runUnscramble(words, activity = 'unscramble') {
       refresh();
     };
     document.getElementById('check').onclick = () => {
+      if (!picked.length) return; // nothing picked yet
       const correct = picked.map(p => p.letter).join('') === word;
       results.push({ word, correct });
       finishRound(body, document.getElementById('feedback'), correct, word, () => { idx++; render(); });

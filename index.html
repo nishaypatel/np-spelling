@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ffd166">
   <title>Spell Squad</title>
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" id="theme-css" href="styles/themes.css">
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script defer src="js/words.js"></script>
+  <script defer src="js/weeks.js"></script>
+  <script defer src="js/firebase-config.js"></script>
+  <script defer src="js/app.js"></script>
+  <script defer src="js/activities.js"></script>
 </head>
 <body class="theme-rainbow">
   <div id="screen-login" class="screen active">
@@ -66,7 +72,7 @@
 
   <div id="screen-words" class="screen hidden">
     <header class="app-header compact-header">
-      <button class="icon-btn" id="btn-back-from-words">←</button>
+      <button class="icon-btn" id="btn-back-from-words" aria-label="Back">←</button>
       <h1 class="header-title">👀 This Week’s Words</h1>
       <nav class="header-actions"><button class="icon-btn labeled top-parent">👨‍👩‍👧 <span>Parent</span></button><button class="icon-btn labeled top-settings">⚙️ <span>Settings</span></button><button class="icon-btn labeled top-signout">👋 <span>Sign out</span></button></nav>
     </header>
@@ -75,7 +81,7 @@
 
   <div id="screen-practice" class="screen hidden">
     <header class="app-header compact-header">
-      <button class="icon-btn" id="btn-back-from-practice">←</button>
+      <button class="icon-btn" id="btn-back-from-practice" aria-label="Back">←</button>
       <h1 class="header-title">🎮 Practice Games</h1>
       <nav class="header-actions"><button class="icon-btn labeled top-parent">👨‍👩‍👧 <span>Parent</span></button><button class="icon-btn labeled top-settings">⚙️ <span>Settings</span></button><button class="icon-btn labeled top-signout">👋 <span>Sign out</span></button></nav>
     </header>
@@ -84,7 +90,7 @@
 
   <div id="screen-activity" class="screen hidden">
     <header class="app-header compact-header">
-      <button class="icon-btn" id="btn-back-from-activity">←</button>
+      <button class="icon-btn" id="btn-back-from-activity" aria-label="Back">←</button>
       <h1 class="header-title" id="activity-title">Activity</h1>
       <div class="header-actions"><div class="progress-pill" id="progress-pill">1 / 8</div><button class="icon-btn labeled top-parent">👨‍👩‍👧 <span>Parent</span></button><button class="icon-btn labeled top-settings">⚙️ <span>Settings</span></button><button class="icon-btn labeled top-signout">👋 <span>Sign out</span></button></div>
     </header>
@@ -107,7 +113,7 @@
 
   <div id="screen-parent" class="screen hidden">
     <header class="app-header compact-header">
-      <button class="icon-btn" id="btn-back-from-parent">←</button>
+      <button class="icon-btn" id="btn-back-from-parent" aria-label="Back">←</button>
       <h1 class="header-title">👨‍👩‍👧 Parent Area</h1>
       <nav class="header-actions"><button class="icon-btn labeled top-settings">⚙️ <span>Settings</span></button><button class="icon-btn labeled top-signout">👋 <span>Sign out</span></button></nav>
     </header>
@@ -116,36 +122,13 @@
 
   <div id="screen-settings" class="screen hidden">
     <header class="app-header compact-header">
-      <button class="icon-btn" id="btn-back-from-settings">←</button>
+      <button class="icon-btn" id="btn-back-from-settings" aria-label="Back">←</button>
       <h1 class="header-title">⚙️ Settings</h1>
       <nav class="header-actions"><button class="icon-btn labeled top-parent">👨‍👩‍👧 <span>Parent</span></button><button class="icon-btn labeled top-signout">👋 <span>Sign out</span></button></nav>
     </header>
-    <main class="settings-body" id="settings-body">
-      <section class="settings-card apple-card">
-        <h2>Theme selector</h2>
-        <div class="theme-grid" id="theme-grid"></div>
-      </section>
-      <section class="settings-card apple-card">
-        <h2>Voice</h2>
-        <div class="segmented" id="voice-gender-options"></div>
-        <h3>Speed</h3>
-        <div class="segmented" id="speech-rate-options"></div>
-        <button class="btn btn-secondary" id="btn-try-voice">🔊 Try voice</button>
-      </section>
-      <section class="settings-card apple-card">
-        <h2>Practice Games Shown</h2>
-        <label class="toggle-row"><span>Select all games</span><input type="checkbox" id="toggle-all-games"></label>
-        <div class="game-toggle-list" id="game-toggle-list"></div>
-      </section>
-    </main>
+    <main class="settings-body" id="settings-body"></main>
   </div>
 
-  <div id="toast" class="toast hidden"></div>
-
-  <script src="js/words.js"></script>
-  <script src="js/weeks.js"></script>
-  <script src="js/firebase-config.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/activities.js"></script>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 </body>
 </html>
