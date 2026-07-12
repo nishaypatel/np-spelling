@@ -39,6 +39,11 @@ const DEFAULT_SETTINGS = {
   voiceGender: 'female',
   speechRate: 0.75,
   visibleGames: DEFAULT_VISIBLE_GAMES,
+  // Which word pool the Practice games (other than the special My Tricky
+  // Words card) draw from: 'current' week, a 'week' chosen below, or every
+  // word marked wrong on a school test across all weeks ('mistakes').
+  practiceSource: 'current',
+  practiceWeekId: null,
 };
 
 const STATE = {
@@ -48,10 +53,13 @@ const STATE = {
   manifest: null,
   words: [],
   wordData: {},
-  testMistakes: [], // words marked wrong in the real school test
+  testMistakes: [], // words marked wrong in the real school test, this week
   settings: { ...DEFAULT_SETTINGS },
   results: [],
   stats: { bestStreak: 0, dayStreak: 0, lastPracticeDay: null },
+  // Resolved word pool for the Practice screen's regular games, based on
+  // settings.practiceSource. Refreshed via refreshActivePool().
+  activePool: { words: [], wordData: {} },
 };
 
 const THEMES = [
@@ -141,6 +149,8 @@ function normaliseSettings(raw = {}) {
     voiceEngine: ['azure', 'device'].includes(raw.voiceEngine) ? raw.voiceEngine : DEFAULT_SETTINGS.voiceEngine,
     speechRate: Number(raw.speechRate || DEFAULT_SETTINGS.speechRate),
     visibleGames: visible.filter(id => GAME_CATALOG.some(game => game.id === id)),
+    practiceSource: ['current', 'week', 'mistakes'].includes(raw.practiceSource) ? raw.practiceSource : DEFAULT_SETTINGS.practiceSource,
+    practiceWeekId: raw.practiceWeekId || null,
   };
 }
 
@@ -267,7 +277,9 @@ async function applyWeekData(entry, full) {
   STATE.currentWeekId = full.weekId || entry.weekId;
   STATE.words = [...full.words];
   STATE.wordData = enrichWordData(STATE.words, full.wordData || {});
-  STATE.testMistakes = [];
+  // Seed from the bundled dataset (e.g. the master word list import), then
+  // let any family-specific Firestore record override it below.
+  STATE.testMistakes = Array.isArray(full.testMistakes) ? full.testMistakes.filter(w => STATE.words.includes(w)) : [];
 
   if (!STATE.familyId) return;
   try {
@@ -281,6 +293,67 @@ async function applyWeekData(entry, full) {
     }
   } catch (e) {
     console.warn('applyWeekData', e);
+  }
+}
+
+// ── Practice word source (Settings → Practice Word Source) ────────────────
+// Resolves the word pool the regular Practice games draw from. "My Tricky
+// Words" is unaffected — it always stays scoped to STATE.testMistakes for
+// the current week.
+async function resolveWeekPool(weekId) {
+  if (weekId === STATE.currentWeekId) return { words: STATE.words, wordData: STATE.wordData };
+  const entry = STATE.manifest?.weeks.find(w => w.weekId === weekId);
+  if (!entry) return { words: STATE.words, wordData: STATE.wordData };
+  const full = await loadWeekData(entry);
+  return { words: [...full.words], wordData: enrichWordData(full.words, full.wordData || {}) };
+}
+
+// Fetches each week's testMistakes (family override if present, else the
+// bundled default) and unions the words that were ever marked wrong,
+// together with their word data so games can show chunks/sentences.
+async function collectAllMistakes() {
+  const weeks = STATE.manifest?.weeks || [];
+  const seen = new Set();
+  const words = [];
+  const wordData = {};
+  for (const entry of weeks) {
+    let mistakes = [];
+    let weekWordData = {};
+    try {
+      const full = await loadWeekData(entry);
+      weekWordData = full.wordData || {};
+      mistakes = Array.isArray(full.testMistakes) ? full.testMistakes : [];
+    } catch (e) {
+      console.warn('collectAllMistakes: week load failed', entry.weekId, e);
+    }
+    if (STATE.familyId) {
+      try {
+        const doc = await db.collection('families').doc(STATE.familyId).collection('weeks').doc(entry.weekId).get();
+        if (doc.exists && Array.isArray(doc.data().testMistakes)) mistakes = doc.data().testMistakes;
+        if (doc.exists && doc.data().wordData) weekWordData = { ...weekWordData, ...doc.data().wordData };
+      } catch (e) {
+        console.warn('collectAllMistakes: firestore read failed', entry.weekId, e);
+      }
+    }
+    mistakes.forEach(word => {
+      if (seen.has(word)) return;
+      seen.add(word);
+      words.push(word);
+      wordData[word] = weekWordData[word] || autoDetectPatterns(word);
+    });
+  }
+  return { words, wordData: enrichWordData(words, wordData) };
+}
+
+async function refreshActivePool() {
+  const { practiceSource, practiceWeekId } = STATE.settings;
+  if (practiceSource === 'week') {
+    const targetWeekId = practiceWeekId || STATE.currentWeekId;
+    STATE.activePool = await resolveWeekPool(targetWeekId);
+  } else if (practiceSource === 'mistakes') {
+    STATE.activePool = await collectAllMistakes();
+  } else {
+    STATE.activePool = { words: STATE.words, wordData: STATE.wordData };
   }
 }
 
@@ -377,6 +450,20 @@ function renderWordCard(word) {
   </article>`;
 }
 
+function practiceSourceBanner() {
+  const { practiceSource, practiceWeekId } = STATE.settings;
+  if (practiceSource === 'mistakes') {
+    const count = STATE.activePool.words.length;
+    return `<div class="practice-source-banner">⭐ Practicing ${count} word${count === 1 ? '' : 's'} she's gotten wrong, across every week</div>`;
+  }
+  if (practiceSource === 'week') {
+    const weekId = practiceWeekId || STATE.currentWeekId;
+    const entry = STATE.manifest?.weeks.find(w => w.weekId === weekId);
+    return `<div class="practice-source-banner">📅 Practicing ${escapeHtml(entry?.label || 'a chosen week')}'s words</div>`;
+  }
+  return '';
+}
+
 function renderPractice() {
   // My Tricky Words pins itself to the top while test mistakes are marked.
   const specialGames = STATE.testMistakes.length
@@ -384,15 +471,15 @@ function renderPractice() {
     : [];
   const visibleGames = [...specialGames, ...GAME_CATALOG.filter(game => !game.special && STATE.settings.visibleGames.includes(game.id))];
   const body = qs('practice-body');
-  if (visibleGames.length <= 6) {
-    body.innerHTML = `<section class="game-grid two-column">${visibleGames.map(renderGameCard).join('')}</section>`;
-  } else {
-    body.innerHTML = ['Recommended', 'More Practice', 'Challenge'].map(group => {
+  const banner = practiceSourceBanner();
+  const grid = visibleGames.length <= 6
+    ? `<section class="game-grid two-column">${visibleGames.map(renderGameCard).join('')}</section>`
+    : ['Recommended', 'More Practice', 'Challenge'].map(group => {
       const games = visibleGames.filter(game => game.group === group);
       if (!games.length) return '';
       return `<section class="game-section"><h2>${group}</h2><div class="game-grid">${games.map(renderGameCard).join('')}</div></section>`;
     }).join('');
-  }
+  body.innerHTML = banner + grid;
   body.querySelectorAll('[data-activity]').forEach(btn => btn.addEventListener('click', () => startActivity(btn.dataset.activity)));
 }
 
@@ -534,6 +621,12 @@ function renderSettings() {
       <div class="settings-voice-try"><span>Test your voice</span><button class="btn btn-secondary" id="btn-try-voice">🔊 Try voice</button></div>
     </section>
     <section class="settings-card apple-card">
+      <h2>Practice Word Source</h2>
+      <p class="engine-note">Choose which words the Practice games use (My Tricky Words always stays scoped to this week's test).</p>
+      <div class="segmented" id="practice-source-options"></div>
+      <div id="practice-week-picker" class="hidden"></div>
+    </section>
+    <section class="settings-card apple-card">
       <h2>Practice Games Shown</h2>
       <div class="game-toggle-grid" id="game-toggle-list"></div>
     </section>
@@ -566,6 +659,24 @@ function renderSettings() {
     { label: 'Normal', value: '0.95' },
     { label: 'Fast', value: '1.15' },
   ], String(STATE.settings.speechRate), value => saveSettings({ speechRate: Number(value) }));
+
+  renderSegmented('practice-source-options', [
+    { label: 'This week', value: 'current' },
+    { label: 'A chosen week', value: 'week' },
+    { label: "Words she's got wrong", value: 'mistakes' },
+  ], STATE.settings.practiceSource, async value => {
+    await saveSettings({ practiceSource: value, practiceWeekId: value === 'week' ? (STATE.settings.practiceWeekId || STATE.currentWeekId) : STATE.settings.practiceWeekId });
+  });
+
+  const weekPicker = qs('practice-week-picker');
+  weekPicker.classList.toggle('hidden', STATE.settings.practiceSource !== 'week');
+  if (STATE.settings.practiceSource === 'week') {
+    const weeks = STATE.manifest?.weeks || [];
+    weekPicker.innerHTML = `<select id="practice-week-select" class="settings-select">${weeks.map(w => `<option value="${escapeHtml(w.weekId)}"${(STATE.settings.practiceWeekId || STATE.currentWeekId) === w.weekId ? ' selected' : ''}>${escapeHtml(w.label)} — ${escapeHtml(w.weekId)}</option>`).join('')}</select>`;
+    qs('practice-week-select').addEventListener('change', async e => {
+      await saveSettings({ practiceWeekId: e.target.value });
+    });
+  }
 
   qs('btn-try-voice').onclick = () => {
     const voiceLabel = STATE.settings.voiceGender === 'male' ? 'male' : 'female';
@@ -653,7 +764,12 @@ function wireNavigation() {
   document.querySelectorAll('#btn-parent, .top-parent').forEach(btn => btn.addEventListener('click', async () => { await renderParent(); showScreen('screen-parent'); }));
   document.querySelectorAll('#btn-settings, .top-settings').forEach(btn => btn.addEventListener('click', () => { renderSettings(); showScreen('screen-settings'); }));
   qs('btn-open-words').addEventListener('click', () => { renderWords(); showScreen('screen-words'); });
-  qs('btn-open-practice').addEventListener('click', () => { renderPractice(); showScreen('screen-practice'); });
+  qs('btn-open-practice').addEventListener('click', async () => {
+    showScreen('screen-practice');
+    qs('practice-body').innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p>Loading words...</p></div>';
+    await refreshActivePool();
+    renderPractice();
+  });
   document.querySelectorAll('[data-activity]').forEach(btn => btn.addEventListener('click', () => startActivity(btn.dataset.activity)));
   qs('btn-back-from-words').addEventListener('click', () => showScreen('screen-home'));
   qs('btn-back-from-practice').addEventListener('click', () => showScreen('screen-home'));
@@ -678,6 +794,7 @@ auth.onAuthStateChanged(async user => {
     await loadSettings();
     await loadStats();
     await loadCurrentWeek();
+    STATE.activePool = { words: STATE.words, wordData: STATE.wordData }; // cheap default; refreshActivePool() runs the real resolution when Practice opens
     renderHome();
     showScreen('screen-home');
   } else {
@@ -685,6 +802,7 @@ auth.onAuthStateChanged(async user => {
     STATE.familyId = null;
     STATE.results = [];
     STATE.testMistakes = [];
+    STATE.activePool = { words: [], wordData: {} };
     STATE.stats = { bestStreak: 0, dayStreak: 0, lastPracticeDay: null };
     showScreen('screen-login');
   }

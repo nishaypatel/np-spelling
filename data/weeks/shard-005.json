@@ -1,0 +1,226 @@
+{
+  "2026-05-12": {
+    "weekId": "2026-05-12",
+    "label": "Week 21",
+    "theme": "/ur/er/ir",
+    "words": [
+      "turn",
+      "girl",
+      "bird",
+      "herself",
+      "herb",
+      "term",
+      "once",
+      "because"
+    ],
+    "wordData": {},
+    "testMistakes": []
+  },
+  "2026-05-19": {
+    "weekId": "2026-05-19",
+    "label": "Week 22",
+    "theme": "Contractions",
+    "words": [
+      "I'm",
+      "he's",
+      "I'll",
+      "you're",
+      "they're",
+      "she's",
+      "we'll",
+      "ask"
+    ],
+    "wordData": {},
+    "testMistakes": [
+      "you're",
+      "they're",
+      "we'll"
+    ]
+  },
+  "2026-05-26": {
+    "weekId": "2026-05-26",
+    "label": "Week 23",
+    "theme": "c, k and ck",
+    "words": [
+      "keep",
+      "catch",
+      "back",
+      "bank",
+      "kiss",
+      "magic",
+      "house",
+      "ask"
+    ],
+    "wordData": {},
+    "testMistakes": [
+      "back"
+    ]
+  },
+  "2026-06-02": {
+    "weekId": "2026-06-02",
+    "label": "Week 24",
+    "theme": "Compound Words",
+    "words": [
+      "weekend",
+      "bedroom",
+      "toothbrush",
+      "farmyard",
+      "sunflower",
+      "lighthouse",
+      "blackberry",
+      "school"
+    ],
+    "wordData": {},
+    "testMistakes": []
+  },
+  "2026-06-09": {
+    "weekId": "2026-06-09",
+    "label": "Week 25",
+    "theme": "Prefix un-",
+    "words": [
+      "unzip",
+      "unlock",
+      "unkind",
+      "unwell",
+      "unhappy",
+      "push",
+      "unlucky",
+      "unfair"
+    ],
+    "wordData": {
+      "unzip": {
+        "chunks": [
+          "un",
+          "zip"
+        ],
+        "sentences": [
+          "I can unzip my coat.",
+          "Mum can unzip the bag.",
+          "Can you unzip it for me?"
+        ],
+        "trickyPart": "un",
+        "wrongVersions": [
+          "unzipp",
+          "unzipe"
+        ]
+      },
+      "unlock": {
+        "chunks": [
+          "un",
+          "lock"
+        ],
+        "sentences": [
+          "Can you unlock the door?",
+          "Dad will unlock the gate.",
+          "She will unlock the car."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": [
+          "onlock",
+          "unlok"
+        ]
+      },
+      "unkind": {
+        "chunks": [
+          "un",
+          "kind"
+        ],
+        "sentences": [
+          "It is unkind to say mean things.",
+          "It is unkind to push.",
+          "Do not be unkind to Ben."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": [
+          "onkind",
+          "unkined"
+        ]
+      },
+      "unwell": {
+        "chunks": [
+          "un",
+          "well"
+        ],
+        "sentences": [
+          "I felt unwell so I stayed home.",
+          "Tom is unwell today.",
+          "The pup is unwell."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": [
+          "onwell",
+          "unwel"
+        ]
+      },
+      "unhappy": {
+        "chunks": [
+          "un",
+          "hap",
+          "py"
+        ],
+        "sentences": [
+          "The dog looked unhappy in the rain.",
+          "I felt unhappy when I fell.",
+          "Sam was unhappy at lunch."
+        ],
+        "trickyPart": "happy",
+        "wrongVersions": [
+          "onhappy",
+          "unhapey"
+        ]
+      },
+      "push": {
+        "chunks": [
+          "pu",
+          "sh"
+        ],
+        "sentences": [
+          "Please push the door to open it.",
+          "I can push the swing.",
+          "Do not push in line."
+        ],
+        "trickyPart": "sh",
+        "wrongVersions": [
+          "puch",
+          "poosh"
+        ]
+      },
+      "unlucky": {
+        "chunks": [
+          "un",
+          "luck",
+          "y"
+        ],
+        "sentences": [
+          "It was unlucky that it rained.",
+          "I was unlucky in the game.",
+          "Sam felt unlucky today."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": [
+          "onlucky",
+          "unluckey"
+        ]
+      },
+      "unfair": {
+        "chunks": [
+          "un",
+          "fair"
+        ],
+        "sentences": [
+          "It is unfair to push in the queue.",
+          "That game was unfair.",
+          "She said it was unfair."
+        ],
+        "trickyPart": "un",
+        "wrongVersions": [
+          "onfair",
+          "unfare"
+        ]
+      }
+    },
+    "testMistakes": [
+      "unlucky"
+    ]
+  }
+}

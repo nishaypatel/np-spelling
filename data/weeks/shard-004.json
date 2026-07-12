@@ -1,0 +1,90 @@
+{
+  "2026-04-07": {
+    "weekId": "2026-04-07",
+    "label": "Week 16",
+    "theme": "are",
+    "words": [
+      "there",
+      "bare",
+      "dare",
+      "care",
+      "spare",
+      "share",
+      "square",
+      "by"
+    ],
+    "wordData": {},
+    "testMistakes": []
+  },
+  "2026-04-14": {
+    "weekId": "2026-04-14",
+    "label": "Week 17",
+    "theme": "oe",
+    "words": [
+      "by",
+      "toe",
+      "goes",
+      "foe",
+      "potatoes",
+      "mangoes",
+      "dominoes",
+      "here"
+    ],
+    "wordData": {},
+    "testMistakes": []
+  },
+  "2026-04-21": {
+    "weekId": "2026-04-21",
+    "label": "Week 18",
+    "theme": "y making an 'ee' sound",
+    "words": [
+      "here",
+      "very",
+      "happy",
+      "funny",
+      "party",
+      "family",
+      "lucky",
+      "has"
+    ],
+    "wordData": {},
+    "testMistakes": []
+  },
+  "2026-04-28": {
+    "weekId": "2026-04-28",
+    "label": "Week 19",
+    "theme": "ea /e/",
+    "words": [
+      "love",
+      "head",
+      "bread",
+      "meant",
+      "breath",
+      "spread",
+      "feather",
+      "come"
+    ],
+    "wordData": {},
+    "testMistakes": []
+  },
+  "2026-05-05": {
+    "weekId": "2026-05-05",
+    "label": "Week 20",
+    "theme": "ie /ee/",
+    "words": [
+      "chief",
+      "field",
+      "thief",
+      "shriek",
+      "achieve",
+      "shield",
+      "believe",
+      "come"
+    ],
+    "wordData": {},
+    "testMistakes": [
+      "achieve",
+      "believe"
+    ]
+  }
+}
