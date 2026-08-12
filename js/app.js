@@ -386,6 +386,62 @@ async function saveTestMistakes(mistakes) {
   }
 }
 
+// ── All Test Results (review/edit mistakes for any week, not just the
+// currently active one) ────────────────────────────────────────────────
+async function loadAllWeeksMistakes() {
+  const weeks = STATE.manifest?.weeks || [];
+  const out = [];
+  for (const entry of weeks) {
+    let mistakes = Array.isArray(entry.testMistakes) ? entry.testMistakes : [];
+    let words = entry.words;
+    if (STATE.familyId) {
+      try {
+        const doc = await db.collection('families').doc(STATE.familyId).collection('weeks').doc(entry.weekId).get();
+        if (doc.exists && Array.isArray(doc.data().testMistakes)) mistakes = doc.data().testMistakes;
+        if (doc.exists && Array.isArray(doc.data().words)) words = doc.data().words; // family may have edited the word list
+      } catch (e) {
+        console.warn('loadAllWeeksMistakes: firestore read failed', entry.weekId, e);
+      }
+    }
+    out.push({ weekId: entry.weekId, label: entry.label, words, mistakes: mistakes.filter(w => words.includes(w)) });
+  }
+  return out;
+}
+
+async function saveWeekMistakes(weekId, mistakes) {
+  if (weekId === STATE.currentWeekId) STATE.testMistakes = mistakes.filter(w => STATE.words.includes(w));
+  if (!STATE.familyId) return;
+  try {
+    await db.collection('families').doc(STATE.familyId).collection('weeks').doc(weekId).set({ testMistakes: mistakes }, { merge: true });
+  } catch (e) {
+    console.error('saveWeekMistakes', e);
+    showToast('Could not save test results.');
+  }
+}
+
+async function renderTestHistory() {
+  const body = qs('test-history-body');
+  body.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p>Loading test results...</p></div>';
+  const weeks = await loadAllWeeksMistakes();
+  body.innerHTML = `
+    <p class="history-intro">Tap any word to mark or unmark it as spelled wrong on that week's real test.</p>
+    ${weeks.map(week => `
+      <section class="apple-card">
+        <h2>${escapeHtml(week.label)} <small class="week-date">${escapeHtml(week.weekId)}</small></h2>
+        <div class="mistake-chips" data-week-id="${escapeHtml(week.weekId)}">
+          ${week.words.map(word => `<button class="mistake-chip${week.mistakes.includes(word) ? ' marked' : ''}" data-mistake="${escapeHtml(word)}">${escapeHtml(word)}</button>`).join('')}
+        </div>
+      </section>`).reverse().join('')}`;
+
+  body.querySelectorAll('[data-week-id]').forEach(group => {
+    group.querySelectorAll('[data-mistake]').forEach(chip => chip.addEventListener('click', () => {
+      chip.classList.toggle('marked');
+      const marked = [...group.querySelectorAll('.mistake-chip.marked')].map(el => el.dataset.mistake);
+      saveWeekMistakes(group.dataset.weekId, marked);
+    }));
+  });
+}
+
 async function saveResult(word, activity, correct) {
   const result = { word, activity, correct, timestamp: Date.now() };
   STATE.results.push(result);
@@ -540,6 +596,7 @@ async function renderParent() {
       <h2>School test results</h2>
       <p class="mistake-intro">Tap the words that were spelled wrong in the real spelling test. They unlock the ⭐ My Tricky Words game on the Practice screen.</p>
       <div class="mistake-chips" id="mistake-chips">${STATE.words.map(word => `<button class="mistake-chip${STATE.testMistakes.includes(word) ? ' marked' : ''}" data-mistake="${escapeHtml(word)}">${escapeHtml(word)}</button>`).join('')}</div>
+      <button class="btn btn-secondary btn-compact" id="btn-open-test-history">📝 Review all weeks' results</button>
     </section>
     <section class="apple-card">
       <h2>Progress summary</h2>
@@ -566,6 +623,7 @@ async function renderParent() {
   });
   qs('btn-reset-progress').addEventListener('click', resetProgressWithConfirm);
   qs('btn-practise-tricky')?.addEventListener('click', () => startActivity('hear-write', trickyWords));
+  qs('btn-open-test-history').addEventListener('click', async () => { showScreen('screen-test-history'); await renderTestHistory(); });
   // Toggle in place (no full re-render — renderParent refetches results).
   body.querySelectorAll('[data-mistake]').forEach(chip => chip.addEventListener('click', () => {
     chip.classList.toggle('marked');
@@ -775,6 +833,7 @@ function wireNavigation() {
   qs('btn-back-from-practice').addEventListener('click', () => showScreen('screen-home'));
   qs('btn-back-from-activity').addEventListener('click', () => { renderPractice(); showScreen('screen-practice'); });
   qs('btn-back-from-parent').addEventListener('click', () => showScreen('screen-home'));
+  qs('btn-back-from-test-history').addEventListener('click', async () => { showScreen('screen-parent'); await renderParent(); });
   qs('btn-back-from-settings').addEventListener('click', () => showScreen('screen-home'));
 }
 

@@ -589,6 +589,7 @@ button { cursor: pointer; }
 .form-wide { grid-column: 1 / -1; justify-self: start; }
 .danger-zone { border-color: rgba(255, 79, 109, .4); }
 .btn-compact { font-size: 1rem; padding: 12px 20px; justify-self: start; margin-top: 4px; }
+.week-date { color: var(--text-muted); font-weight: 600; font-size: .85rem; }
 
 /* ── School test result chips ── */
 .mistake-intro { color: var(--text-muted); font-weight: 700; margin: 0 0 14px; }
