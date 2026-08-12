@@ -750,7 +750,7 @@ function renderSettings() {
   }));
 }
 
-function renderWordHistory() {
+async function renderWordHistory() {
   const grid = qs('history-grid');
   if (!grid) return;
   const weeks = STATE.manifest?.weeks || [];
@@ -758,10 +758,15 @@ function renderWordHistory() {
     grid.innerHTML = '<p class="history-empty">No weeks saved yet.</p>';
     return;
   }
+  grid.innerHTML = '<p class="history-empty">Loading…</p>';
+  const mistakesByWeek = await loadAllWeeksMistakes();
+  const mistakesByWeekId = Object.fromEntries(mistakesByWeek.map(w => [w.weekId, w.mistakes]));
+
   // Columns flow left-to-right; CSS wraps to a new row after every 5 weeks.
   grid.innerHTML = weeks.map(week => {
     const isActive = week.weekId === STATE.currentWeekId;
-    const words = (week.words || []).map(w => `<li>${escapeHtml(w)}</li>`).join('');
+    const mistakes = mistakesByWeekId[week.weekId] || [];
+    const words = (week.words || []).map(w => `<li class="${mistakes.includes(w) ? 'history-word-wrong' : ''}">${escapeHtml(w)}</li>`).join('');
     return `<button class="history-week${isActive ? ' current' : ''}" data-week-id="${escapeHtml(week.weekId)}">
       <h3>${escapeHtml(week.label || week.weekId)}${isActive ? ' <span class="history-now">now</span>' : ''}</h3>
       <ol class="history-words">${words}</ol>
@@ -777,7 +782,7 @@ function renderWordHistory() {
       await applyWeekData(entry, full);
       setWeekLabel();
       renderHome();
-      renderWordHistory();
+      await renderWordHistory();
       showToast(`Switched to ${entry.label}!`);
       showScreen('screen-home');
     });
