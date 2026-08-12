@@ -132,10 +132,16 @@ window.TTS = TTS;
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 function startActivity(type, customWords) {
-  let pool = Array.isArray(customWords) && customWords.length ? customWords : STATE.words;
+  let pool = Array.isArray(customWords) && customWords.length ? customWords : STATE.activePool.words;
+  // The real school-test simulation always covers this week's actual list,
+  // regardless of the Practice Word Source setting.
+  if (!customWords && type === 'test-mode') pool = STATE.words;
   if (type === 'my-tricky-words') pool = STATE.testMistakes;
   if (!pool.length) {
-    showToast(type === 'my-tricky-words' ? 'No test words marked yet — tick them in the Parent Area first.' : 'No words loaded yet!');
+    const noPoolMsg = STATE.settings.practiceSource === 'mistakes'
+      ? "No wrong words recorded yet — mark some in the Parent Area first."
+      : 'No words loaded yet!';
+    showToast(type === 'my-tricky-words' ? 'No test words marked yet — tick them in the Parent Area first.' : noPoolMsg);
     return;
   }
   TTS.cancel();
@@ -174,7 +180,7 @@ function shuffle(arr) {
 }
 
 function updateProgress(current, total) { document.getElementById('progress-pill').textContent = `${current} / ${total}`; }
-function getData(word) { return STATE.wordData[word] || autoDetectPatterns(word); }
+function getData(word) { return STATE.activePool.wordData[word] || STATE.wordData[word] || autoDetectPatterns(word); }
 function pickSentence(word, wordData = {}) {
   const sentences = Array.isArray(wordData.sentences) ? wordData.sentences.filter(Boolean) : [];
   const choices = sentences.length ? sentences : [wordData.sentence || `Can you spell ${word}?`];

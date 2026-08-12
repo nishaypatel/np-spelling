@@ -1,24 +1,506 @@
 {
-  "currentWeekId": "2026-06-23",
+  "currentWeekId": "2026-07-07",
   "weeksPerShard": 5,
   "weeks": [
     {
-      "weekId": "2026-06-09",
+      "weekId": "2025-12-23",
       "label": "Week 1",
       "shard": "shard-001.json",
-      "words": ["unzip", "unlock", "unkind", "unwell", "unhappy", "push", "unlucky", "unfair"]
+      "words": [
+        "snail",
+        "day",
+        "some",
+        "came",
+        "made",
+        "make",
+        "take",
+        "when"
+      ],
+      "testMistakes": [
+        "day"
+      ]
+    },
+    {
+      "weekId": "2025-12-30",
+      "label": "Week 2",
+      "shard": "shard-001.json",
+      "words": [
+        "boat",
+        "window",
+        "what",
+        "home",
+        "poke",
+        "those",
+        "woke",
+        "why"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-01-06",
+      "label": "Week 3",
+      "shard": "shard-001.json",
+      "words": [
+        "night",
+        "cried",
+        "why",
+        "time",
+        "like",
+        "slime",
+        "five",
+        "where"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-01-13",
+      "label": "Week 4",
+      "shard": "shard-001.json",
+      "words": [
+        "see",
+        "eat",
+        "why",
+        "these",
+        "eve",
+        "theme",
+        "delete",
+        "when"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-01-20",
+      "label": "Week 5",
+      "shard": "shard-001.json",
+      "words": [
+        "new",
+        "Tuesday",
+        "when",
+        "use",
+        "tune",
+        "tube",
+        "cube",
+        "who"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-01-27",
+      "label": "Week 6",
+      "shard": "shard-002.json",
+      "words": [
+        "people",
+        "she",
+        "be",
+        "tiger",
+        "go",
+        "most",
+        "acorn",
+        "music"
+      ],
+      "testMistakes": [
+        "tiger",
+        "acorn",
+        "music"
+      ]
+    },
+    {
+      "weekId": "2026-02-03",
+      "label": "Week 7",
+      "shard": "shard-002.json",
+      "words": [
+        "turn",
+        "surf",
+        "girl",
+        "bird",
+        "shirt",
+        "first",
+        "what",
+        "children"
+      ],
+      "testMistakes": [
+        "turn",
+        "surf",
+        "what"
+      ]
+    },
+    {
+      "weekId": "2026-02-10",
+      "label": "Week 8",
+      "shard": "shard-002.json",
+      "words": [
+        "coin",
+        "soil",
+        "boy",
+        "joy",
+        "destroy",
+        "annoy",
+        "children",
+        "does"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-02-17",
+      "label": "Week 9",
+      "shard": "shard-002.json",
+      "words": [
+        "corn",
+        "sport",
+        "saw",
+        "draw",
+        "yawn",
+        "crawl",
+        "does",
+        "live"
+      ],
+      "testMistakes": [
+        "yawn"
+      ]
+    },
+    {
+      "weekId": "2026-02-24",
+      "label": "Week 10",
+      "shard": "shard-002.json",
+      "words": [
+        "storm",
+        "fork",
+        "launch",
+        "haunt",
+        "astronaut",
+        "August",
+        "live",
+        "word"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-03-03",
+      "label": "Week 11",
+      "shard": "shard-003.json",
+      "words": [
+        "friend",
+        "photo",
+        "phone",
+        "phew",
+        "phonics",
+        "alphabet",
+        "dolphin",
+        "your"
+      ],
+      "testMistakes": [
+        "alphabet"
+      ]
+    },
+    {
+      "weekId": "2026-03-10",
+      "label": "Week 12",
+      "shard": "shard-003.json",
+      "words": [
+        "your",
+        "when",
+        "which",
+        "wheel",
+        "white",
+        "whale",
+        "whisper",
+        "today"
+      ],
+      "testMistakes": [
+        "wheel",
+        "whisper"
+      ]
+    },
+    {
+      "weekId": "2026-03-17",
+      "label": "Week 13",
+      "shard": "shard-003.json",
+      "words": [
+        "today",
+        "have",
+        "give",
+        "live",
+        "twelve",
+        "leave",
+        "forgive",
+        "says"
+      ],
+      "testMistakes": [
+        "twelve",
+        "says"
+      ]
+    },
+    {
+      "weekId": "2026-03-24",
+      "label": "Week 14",
+      "shard": "shard-003.json",
+      "words": [
+        "says",
+        "catch",
+        "fetch",
+        "witch",
+        "sketch",
+        "switch",
+        "stretch",
+        "were"
+      ],
+      "testMistakes": [
+        "sketch"
+      ]
+    },
+    {
+      "weekId": "2026-03-31",
+      "label": "Week 15",
+      "shard": "shard-003.json",
+      "words": [
+        "were",
+        "more",
+        "snore",
+        "chore",
+        "score",
+        "ignore",
+        "before",
+        "there"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-04-07",
+      "label": "Week 16",
+      "shard": "shard-004.json",
+      "words": [
+        "there",
+        "bare",
+        "dare",
+        "care",
+        "spare",
+        "share",
+        "square",
+        "by"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-04-14",
+      "label": "Week 17",
+      "shard": "shard-004.json",
+      "words": [
+        "by",
+        "toe",
+        "goes",
+        "foe",
+        "potatoes",
+        "mangoes",
+        "dominoes",
+        "here"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-04-21",
+      "label": "Week 18",
+      "shard": "shard-004.json",
+      "words": [
+        "here",
+        "very",
+        "happy",
+        "funny",
+        "party",
+        "family",
+        "lucky",
+        "has"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-04-28",
+      "label": "Week 19",
+      "shard": "shard-004.json",
+      "words": [
+        "love",
+        "head",
+        "bread",
+        "meant",
+        "breath",
+        "spread",
+        "feather",
+        "come"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-05-05",
+      "label": "Week 20",
+      "shard": "shard-004.json",
+      "words": [
+        "chief",
+        "field",
+        "thief",
+        "shriek",
+        "achieve",
+        "shield",
+        "believe",
+        "come"
+      ],
+      "testMistakes": [
+        "achieve",
+        "believe"
+      ]
+    },
+    {
+      "weekId": "2026-05-12",
+      "label": "Week 21",
+      "shard": "shard-005.json",
+      "words": [
+        "turn",
+        "girl",
+        "bird",
+        "herself",
+        "herb",
+        "term",
+        "once",
+        "because"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-05-19",
+      "label": "Week 22",
+      "shard": "shard-005.json",
+      "words": [
+        "I'm",
+        "he's",
+        "I'll",
+        "you're",
+        "they're",
+        "she's",
+        "we'll",
+        "ask"
+      ],
+      "testMistakes": [
+        "you're",
+        "they're",
+        "we'll"
+      ]
+    },
+    {
+      "weekId": "2026-05-26",
+      "label": "Week 23",
+      "shard": "shard-005.json",
+      "words": [
+        "keep",
+        "catch",
+        "back",
+        "bank",
+        "kiss",
+        "magic",
+        "house",
+        "ask"
+      ],
+      "testMistakes": [
+        "back"
+      ]
+    },
+    {
+      "weekId": "2026-06-02",
+      "label": "Week 24",
+      "shard": "shard-005.json",
+      "words": [
+        "weekend",
+        "bedroom",
+        "toothbrush",
+        "farmyard",
+        "sunflower",
+        "lighthouse",
+        "blackberry",
+        "school"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-06-09",
+      "label": "Week 25",
+      "shard": "shard-005.json",
+      "words": [
+        "unzip",
+        "unlock",
+        "unkind",
+        "unwell",
+        "unhappy",
+        "push",
+        "unlucky",
+        "unfair"
+      ],
+      "testMistakes": [
+        "unlucky"
+      ]
     },
     {
       "weekId": "2026-06-16",
-      "label": "Week 2",
-      "shard": "shard-001.json",
-      "words": ["hunting", "playing", "buzzing", "jumping", "pushing", "thinking", "asking", "pull"]
+      "label": "Week 26",
+      "shard": "shard-006.json",
+      "words": [
+        "hunting",
+        "playing",
+        "buzzing",
+        "jumping",
+        "pushing",
+        "thinking",
+        "asking",
+        "pull"
+      ],
+      "testMistakes": []
     },
     {
       "weekId": "2026-06-23",
-      "label": "Week 3",
-      "shard": "shard-001.json",
-      "words": ["dogs", "spends", "sings", "wishes", "pulls", "pushes", "peas", "full"]
+      "label": "Week 27",
+      "shard": "shard-006.json",
+      "words": [
+        "dogs",
+        "spends",
+        "sings",
+        "wishes",
+        "pulls",
+        "pushes",
+        "peas",
+        "full"
+      ],
+      "testMistakes": [
+        "sings",
+        "pushes"
+      ]
+    },
+    {
+      "weekId": "2026-06-30",
+      "label": "Week 28",
+      "shard": "shard-006.json",
+      "words": [
+        "jumped",
+        "played",
+        "rained",
+        "ended",
+        "reached",
+        "pushed",
+        "pulled",
+        "our"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-07-07",
+      "label": "Week 29",
+      "shard": "shard-006.json",
+      "words": [
+        "jumped",
+        "played",
+        "rained",
+        "ended",
+        "reached",
+        "pushed",
+        "pulled",
+        "our"
+      ],
+      "testMistakes": []
     }
   ]
 }

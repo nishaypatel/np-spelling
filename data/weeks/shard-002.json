@@ -1,0 +1,97 @@
+{
+  "2026-01-27": {
+    "weekId": "2026-01-27",
+    "label": "Week 6",
+    "theme": "Single vowel sounds",
+    "words": [
+      "people",
+      "she",
+      "be",
+      "tiger",
+      "go",
+      "most",
+      "acorn",
+      "music"
+    ],
+    "wordData": {},
+    "testMistakes": [
+      "tiger",
+      "acorn",
+      "music"
+    ]
+  },
+  "2026-02-03": {
+    "weekId": "2026-02-03",
+    "label": "Week 7",
+    "theme": "ir",
+    "words": [
+      "turn",
+      "surf",
+      "girl",
+      "bird",
+      "shirt",
+      "first",
+      "what",
+      "children"
+    ],
+    "wordData": {},
+    "testMistakes": [
+      "turn",
+      "surf",
+      "what"
+    ]
+  },
+  "2026-02-10": {
+    "weekId": "2026-02-10",
+    "label": "Week 8",
+    "theme": "oy and oi",
+    "words": [
+      "coin",
+      "soil",
+      "boy",
+      "joy",
+      "destroy",
+      "annoy",
+      "children",
+      "does"
+    ],
+    "wordData": {},
+    "testMistakes": []
+  },
+  "2026-02-17": {
+    "weekId": "2026-02-17",
+    "label": "Week 9",
+    "theme": "aw",
+    "words": [
+      "corn",
+      "sport",
+      "saw",
+      "draw",
+      "yawn",
+      "crawl",
+      "does",
+      "live"
+    ],
+    "wordData": {},
+    "testMistakes": [
+      "yawn"
+    ]
+  },
+  "2026-02-24": {
+    "weekId": "2026-02-24",
+    "label": "Week 10",
+    "theme": "au",
+    "words": [
+      "storm",
+      "fork",
+      "launch",
+      "haunt",
+      "astronaut",
+      "August",
+      "live",
+      "word"
+    ],
+    "wordData": {},
+    "testMistakes": []
+  }
+}

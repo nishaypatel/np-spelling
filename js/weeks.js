@@ -27,11 +27,23 @@ async function loadWeeksManifest() {
   }
 }
 
-// Returns the full data ({ weekId, words, wordData }) for a single week,
-// reading just that week's shard. Falls back to the bundled default week.
+// Shards hold several weeks each, so cache the fetch — practice-source
+// aggregation across all weeks would otherwise refetch the same shard
+// repeatedly (once per week it contains).
+const _shardCache = new Map();
+function fetchShard(shardName) {
+  if (!_shardCache.has(shardName)) {
+    _shardCache.set(shardName, fetchJson(`${WEEKS_DATA_BASE}/${shardName}`).catch(e => { _shardCache.delete(shardName); throw e; }));
+  }
+  return _shardCache.get(shardName);
+}
+
+// Returns the full data ({ weekId, words, wordData, testMistakes }) for a
+// single week, reading just that week's shard. Falls back to the bundled
+// default week.
 async function loadWeekData(entry) {
   try {
-    const shard = await fetchJson(`${WEEKS_DATA_BASE}/${entry.shard}`);
+    const shard = await fetchShard(entry.shard);
     const week = shard[entry.weekId];
     if (week && Array.isArray(week.words)) return week;
     throw new Error(`week ${entry.weekId} missing from ${entry.shard}`);
