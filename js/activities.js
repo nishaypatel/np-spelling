@@ -463,6 +463,10 @@ function runMissingLetters(words, activity = 'missing-letters') {
   render();
 }
 
+// Unscramble reads the word aloud only for words longer than this: short ones
+// are easy enough to spot in the letter bank.
+const UNSCRAMBLE_SPEAKER_MIN_LETTERS = 5;
+
 function runUnscramble(words, activity = 'unscramble') {
   let idx = 0;
   const results = [];
@@ -474,7 +478,7 @@ function runUnscramble(words, activity = 'unscramble') {
     const scrambled = shuffle([...word]);
     body.innerHTML = `<section class="activity-card-large apple-card">
       <p class="eyebrow">Tap the letters in order to build the word</p>
-      <button class="hw-play-btn" id="play-word" type="button" aria-label="Hear the word">🔊</button>
+      ${word.length > UNSCRAMBLE_SPEAKER_MIN_LETTERS ? `<button class="hw-play-btn" id="play-word" type="button" aria-label="Hear the word">🔊</button>` : ''}
       <div class="unscramble-answer" id="unscramble-answer"></div>
       <div class="letter-bank" id="letter-bank">${scrambled.map((ch, i) => `<button type="button" class="letter-block" data-i="${i}">${escapeHtml(ch)}</button>`).join('')}</div>
       <div class="answer-actions">
@@ -484,7 +488,8 @@ function runUnscramble(words, activity = 'unscramble') {
       <div class="hw-feedback" id="feedback" aria-live="polite"></div>
       <button class="btn btn-primary" id="check">Check ✓</button>
     </section>`;
-    document.getElementById('play-word').onclick = () => TTS.speak(word, STATE.settings.speechRate, 1.0);
+    const playBtn = document.getElementById('play-word'); // absent for short words
+    if (playBtn) playBtn.onclick = () => TTS.speak(word, STATE.settings.speechRate, 1.0);
     const answerEl = document.getElementById('unscramble-answer');
     const bank = document.getElementById('letter-bank');
     const picked = []; // { letter, btn }
