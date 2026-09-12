@@ -8,7 +8,7 @@
 //   - /api/tts and every other origin (Firebase auth/Firestore): untouched.
 //
 // Bump CACHE_VERSION whenever shell files change so old caches are dropped.
-const CACHE_VERSION = 'spell-squad-v2';
+const CACHE_VERSION = 'spell-squad-v3';
 
 const SHELL = [
   '.',

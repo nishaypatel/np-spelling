@@ -1,5 +1,5 @@
 {
-  "currentWeekId": "2026-07-07",
+  "currentWeekId": "2026-09-08",
   "weeksPerShard": 5,
   "weeks": [
     {
@@ -499,6 +499,24 @@
         "pushed",
         "pulled",
         "our"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-09-08",
+      "label": "Week 30",
+      "shard": "shard-006.json",
+      "words": [
+        "cry",
+        "by",
+        "my",
+        "fly",
+        "dry",
+        "try",
+        "reply",
+        "July",
+        "old",
+        "cold"
       ],
       "testMistakes": []
     }

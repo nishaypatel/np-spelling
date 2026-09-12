@@ -5,6 +5,12 @@ const FAMILY_MAP = {
 };
 const ALLOWED_EMAILS = Object.keys(FAMILY_MAP);
 
+// Word-list sizes. The school usually sets 8 words a week, but some lists run
+// longer, so the app only enforces sane bounds on hand-edited lists.
+const WORDS_PER_WEEK = 8;
+const MIN_WORDS_PER_WEEK = 4;
+const MAX_WORDS_PER_WEEK = 15;
+
 const DEFAULT_VISIBLE_GAMES = [
   'hear-write',
   'look-cover-write',
@@ -285,7 +291,7 @@ async function applyWeekData(entry, full) {
   try {
     const doc = await db.collection('families').doc(STATE.familyId).collection('weeks').doc(STATE.currentWeekId).get();
     if (doc.exists && Array.isArray(doc.data().words)) {
-      STATE.words = doc.data().words.slice(0, 8).map(w => String(w).trim().toLowerCase()).filter(Boolean);
+      STATE.words = doc.data().words.slice(0, MAX_WORDS_PER_WEEK).map(w => String(w).trim()).filter(Boolean);
       STATE.wordData = enrichWordData(STATE.words, { ...(full.wordData || {}), ...(doc.data().wordData || {}) });
     }
     if (doc.exists && Array.isArray(doc.data().testMistakes)) {
@@ -357,9 +363,15 @@ async function refreshActivePool() {
   }
 }
 
+// Most weeks have 8 words, but some lists are longer, so the editor shows a
+// slot per word in the current week (never fewer than the usual 8) plus a
+// spare for adding one.
+function wordSlotCount() { return Math.max(WORDS_PER_WEEK, STATE.words.length + 1); }
+
 async function saveWeeklyWords(words) {
-  const cleanWords = words.map(w => w.trim().toLowerCase()).filter(Boolean).slice(0, 8);
-  if (cleanWords.length !== 8) { showToast('Please enter exactly 8 words.'); return false; }
+  // Capitals are kept: some words are proper nouns (July, Tuesday, August).
+  const cleanWords = words.map(w => w.trim()).filter(Boolean).slice(0, MAX_WORDS_PER_WEEK);
+  if (cleanWords.length < MIN_WORDS_PER_WEEK) { showToast(`Please enter at least ${MIN_WORDS_PER_WEEK} words.`); return false; }
   STATE.words = cleanWords;
   STATE.wordData = enrichWordData(cleanWords, STATE.wordData);
   STATE.testMistakes = STATE.testMistakes.filter(w => cleanWords.includes(w));
@@ -607,8 +619,8 @@ async function renderParent() {
       }).join('')}</div>
     </section>
     <section class="apple-card">
-      <h2>Edit this week’s 8 words</h2>
-      <form id="words-form" class="word-entry-grid">${Array.from({ length: 8 }, (_, i) => `<label class="word-entry-item"><span>Word ${i + 1}</span><input class="word-input" value="${escapeHtml(STATE.words[i] || '')}"></label>`).join('')}<button class="btn btn-primary form-wide" type="submit">Save words</button></form>
+      <h2>Edit this week’s words</h2>
+      <form id="words-form" class="word-entry-grid">${Array.from({ length: wordSlotCount() }, (_, i) => `<label class="word-entry-item"><span>Word ${i + 1}</span><input class="word-input" value="${escapeHtml(STATE.words[i] || '')}"></label>`).join('')}<button class="btn btn-primary form-wide" type="submit">Save words</button></form>
     </section>
     <section class="apple-card danger-zone">
       <h2>Reset Progress</h2>

@@ -343,5 +343,196 @@
     ],
     "wordData": {},
     "testMistakes": []
+  },
+  "2026-09-08": {
+    "weekId": "2026-09-08",
+    "label": "Week 30",
+    "theme": "y saying /igh/ (long i)",
+    "words": [
+      "cry",
+      "by",
+      "my",
+      "fly",
+      "dry",
+      "try",
+      "reply",
+      "July",
+      "old",
+      "cold"
+    ],
+    "wordData": {
+      "cry": {
+        "chunks": [
+          "cr",
+          "y"
+        ],
+        "sentences": [
+          "The baby began to cry.",
+          "Try not to cry when you fall over.",
+          "I heard the puppy cry in the night."
+        ],
+        "family": "y saying /igh/ family",
+        "trickyPart": "y",
+        "wrongVersions": [
+          "cri",
+          "crie"
+        ]
+      },
+      "by": {
+        "chunks": [
+          "b",
+          "y"
+        ],
+        "sentences": [
+          "Come and sit by me.",
+          "We walked by the duck pond.",
+          "This book was written by my dad."
+        ],
+        "family": "y saying /igh/ family",
+        "trickyPart": "y",
+        "wrongVersions": [
+          "bi",
+          "bye"
+        ]
+      },
+      "my": {
+        "chunks": [
+          "m",
+          "y"
+        ],
+        "sentences": [
+          "This is my new bike.",
+          "My shoes are very muddy.",
+          "I lost my hat in the park."
+        ],
+        "family": "y saying /igh/ family",
+        "trickyPart": "y",
+        "wrongVersions": [
+          "mi",
+          "mie"
+        ]
+      },
+      "fly": {
+        "chunks": [
+          "fl",
+          "y"
+        ],
+        "sentences": [
+          "Birds fly high in the sky.",
+          "A fly buzzed round the room.",
+          "We will fly to see Grandma."
+        ],
+        "family": "y saying /igh/ family",
+        "trickyPart": "y",
+        "wrongVersions": [
+          "fli",
+          "flie"
+        ]
+      },
+      "dry": {
+        "chunks": [
+          "dr",
+          "y"
+        ],
+        "sentences": [
+          "Please dry your hands on the towel.",
+          "My coat is dry again.",
+          "We ran inside to stay dry."
+        ],
+        "family": "y saying /igh/ family",
+        "trickyPart": "y",
+        "wrongVersions": [
+          "dri",
+          "drie"
+        ]
+      },
+      "try": {
+        "chunks": [
+          "tr",
+          "y"
+        ],
+        "sentences": [
+          "I will try my best.",
+          "Try to spell the word again.",
+          "Let me try the puzzle once more."
+        ],
+        "family": "y saying /igh/ family",
+        "trickyPart": "y",
+        "wrongVersions": [
+          "tri",
+          "trie"
+        ]
+      },
+      "reply": {
+        "chunks": [
+          "re",
+          "pl",
+          "y"
+        ],
+        "sentences": [
+          "Please reply to my question.",
+          "She sent a reply to the letter.",
+          "He did not reply at all."
+        ],
+        "family": "y saying /igh/ family",
+        "trickyPart": "y",
+        "wrongVersions": [
+          "replie",
+          "repli"
+        ]
+      },
+      "July": {
+        "chunks": [
+          "Ju",
+          "ly"
+        ],
+        "sentences": [
+          "My birthday is in July.",
+          "We go on holiday in July.",
+          "July is the hottest month here."
+        ],
+        "family": "y saying /igh/ family",
+        "trickyPart": "capital J",
+        "wrongVersions": [
+          "july",
+          "Julie"
+        ]
+      },
+      "old": {
+        "chunks": [
+          "o",
+          "ld"
+        ],
+        "sentences": [
+          "My old coat is too small now.",
+          "How old are you?",
+          "The old tree fell down in the storm."
+        ],
+        "family": "-old word family (tricky word)",
+        "trickyPart": "old",
+        "wrongVersions": [
+          "olde",
+          "owld"
+        ]
+      },
+      "cold": {
+        "chunks": [
+          "c",
+          "old"
+        ],
+        "sentences": [
+          "The water is very cold.",
+          "Wear a hat when it is cold.",
+          "I had a cold last week."
+        ],
+        "family": "-old word family (tricky word)",
+        "trickyPart": "old",
+        "wrongVersions": [
+          "colde",
+          "cowld"
+        ]
+      }
+    },
+    "testMistakes": []
   }
 }

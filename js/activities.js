@@ -455,7 +455,7 @@ function runMissingLetters(words, activity = 'missing-letters') {
     });
     document.getElementById('check-missing').onclick = () => {
       if (blanks.some(input => !input.value.trim())) { activeBlank?.focus(); return; } // wait until every gap is filled
-      const correct = [...body.querySelectorAll('.ml-blank')].every(input => input.value.trim().toLowerCase() === word[Number(input.dataset.pos)]);
+      const correct = [...body.querySelectorAll('.ml-blank')].every(input => input.value.trim().toLowerCase() === word[Number(input.dataset.pos)].toLowerCase());
       results.push({ word, correct });
       finishRound(body, document.getElementById('feedback'), correct, word, () => { idx++; render(); });
     };
