@@ -508,7 +508,7 @@
           "How old are you?",
           "The old tree fell down in the storm."
         ],
-        "family": "-old word family (tricky word)",
+        "family": "-old word family",
         "trickyPart": "old",
         "wrongVersions": [
           "olde",
@@ -525,7 +525,7 @@
           "Wear a hat when it is cold.",
           "I had a cold last week."
         ],
-        "family": "-old word family (tricky word)",
+        "family": "-old word family",
         "trickyPart": "old",
         "wrongVersions": [
           "colde",
