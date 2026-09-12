@@ -7,101 +7,69 @@ push; Vercel serves the repo as-is.
 
 ## The usual request: "Here are the words for this week" + a photo
 
-That is a data task. Read the words off the photo and add **one new week** to
-`data/weeks/`. Nothing else normally needs to change.
+This is a data task and should take about four tool calls. Do not re-explore
+the repo — everything mechanical is in `tools/add-week.py`.
 
-### 1. Read the list off the photo
-
-- Keep the order shown on the sheet.
-- **Red words are the tricky/common-exception words** (the school prints them
-  in red). They are normally the last one or two, e.g. `old`, `cold`. Keep them
-  in the list — just describe them as tricky words in `family`.
-- Preserve capitals and apostrophes exactly: `July`, `Tuesday`, `I'm`.
-- Lists are usually 8 words, but not always (Week 30 has 10). Never truncate.
-
-### 2. Pick the weekId and label
-
-- `weekId` is an ISO date and **every week so far is a Tuesday** — use the
-  Tuesday of the current week (`date -d 'last tuesday'` / check with python).
-- `label` is `"Week N"`, continuing the sequence in the manifest. Gaps in the
-  dates are fine (school holidays); the numbering just keeps counting.
-
-### 3. Pick the shard
-
-`data/weeks/manifest.json` holds `weeksPerShard: 5`. Count how many weeks
-already point at the newest shard; if it is full, start the next one with a new
-file containing `{}` and reference it from the manifest entry. `js/weeks.js`
-fetches whatever filename the entry names, so no code change is needed.
-(`shard-006.json` is full: weeks 26–30. **The next week starts
-`shard-007.json`.**) `sw.js` precaches only `shard-001.json`; leave that alone.
-
-### 4. Write the week into the shard
-
-Keyed by `weekId`, appended at the end of the shard object:
+**1. Read the list off the photo into one JSON blob.** This is the only part
+that needs thought. One entry per word, in the order shown on the sheet:
 
 ```json
-"2026-09-08": {
-  "weekId": "2026-09-08",
-  "label": "Week 30",
+{
   "theme": "y saying /igh/ (long i)",
-  "words": ["cry", "by", "..."],
-  "wordData": {
+  "words": {
     "cry": {
       "chunks": ["cr", "y"],
-      "sentences": ["The baby began to cry.", "…", "…"],
+      "sentences": ["The baby began to cry.", "Try not to cry when you fall over.", "I heard the puppy cry in the night."],
       "family": "y saying /igh/ family",
       "trickyPart": "y",
       "wrongVersions": ["cri", "crie"]
     }
-  },
-  "testMistakes": []
+  }
 }
 ```
 
-What each field feeds (see `js/activities.js`):
+Reading the photo:
+
+- Keep the order shown on the sheet.
+- **Red words are the tricky/common-exception words** (the school prints them
+  in red), normally the last one or two — e.g. `old`, `cold`. Keep them in the
+  list; just say so in `family`, as in `"-old word family (tricky word)"`.
+- Preserve capitals and apostrophes exactly: `July`, `Tuesday`, `I'm`.
+- Lists are usually 8 words, but not always (Week 30 has 10). Never truncate.
+
+Writing the word data (see `js/activities.js` for what consumes it):
 
 | field | used by | rules |
 | --- | --- | --- |
-| `chunks` | Build the Sounds, Tap the Sound, chunk-by-chunk TTS | **must concatenate to the exact word**; phonic pieces, not letters |
+| `chunks` | Build the Sounds, Tap the Sound, chunk-by-chunk TTS | **must concatenate to the exact word**; phonic pieces, not single letters |
 | `sentences` | Hear & Write, dictation, Look-Cover-Write | 3 short sentences a 6-year-old knows, each containing the word |
 | `family` | word card "Pattern:" | free text |
 | `trickyPart` | word card + Tricky Bit header | free text (`"y"`, `"capital J"`) |
-| `wrongVersions` | Tricky Bit distractors | exactly 2, plausible misspellings, compared **case-sensitively** so `"july"` is a valid distractor for `July` |
-| `theme` | nothing — metadata only, not rendered | |
-| `testMistakes` | My Tricky Words game | `[]` for a new week; the parent marks these in the app after the school test |
+| `wrongVersions` | Tricky Bit distractors | 2 plausible misspellings, compared **case-sensitively** so `"july"` is a valid distractor for `July` |
+| `theme` | nothing — metadata only, never rendered | |
 
-`wordData` may be left `{}` — `autoDetectPatterns()` in `js/app.js` guesses
-chunks/family/sentences at runtime — but hand-written data is much better, so
-fill it in.
+A word mapped to `{}` is accepted (the app derives chunks and sentences at
+runtime via `autoDetectPatterns()`), but hand-written data is much better.
 
-### 5. Update the manifest
-
-Append `{ weekId, label, shard, words, testMistakes }` to `manifest.weeks`
-(same words, in the same order) **and set `currentWeekId` to the new weekId**.
-The manifest is the index the Word History grid renders from; shards are only
-fetched for the week being practised.
-
-### 6. Verify, commit, push
+**2. Run the script.** It picks the weekId (Tuesday of the current week), the
+next `Week N` label and the shard — rolling over to a new shard file when the
+current one is full — writes the week, appends the manifest entry and points
+`currentWeekId` at it. It validates everything first and writes nothing if any
+check fails.
 
 ```bash
-python3 - <<'PY'
-import json
-m = json.load(open('data/weeks/manifest.json'))
-s = json.load(open('data/weeks/shard-006.json'))   # the shard you touched
-w = s[m['currentWeekId']]
-entry = next(e for e in m['weeks'] if e['weekId'] == w['weekId'])
-assert entry['words'] == w['words'], 'manifest/shard word lists disagree'
-assert list(w['wordData']) == w['words'], 'wordData must cover every word'
-for word, d in w['wordData'].items():
-    assert ''.join(d['chunks']) == word, f'chunks do not spell {word}'
-    assert len(d['sentences']) >= 3 and word not in d['wrongVersions'], word
-print('ok', w['label'], w['words'])
-PY
-node --check js/app.js && node --check js/activities.js   # only if JS changed
+python3 tools/add-week.py week.json          # or pipe the JSON on stdin
+python3 tools/add-week.py --check            # re-validate the current week
 ```
 
-Commit both files together and push to the session's designated branch. Do not
-open a PR unless asked.
+Only if the defaults are wrong: `--week-id 2026-09-15` (a second list in the
+same week, or a catch-up week) and `--label "Week 31"`.
+
+**3. Commit both changed files and push** to the session's designated branch.
+Do not open a PR unless asked.
+
+That is the whole job. App code only needs touching if the list breaks an
+assumption — see the next section for the ones already removed.
 
 ## Things already fixed — don't reintroduce them
 
@@ -125,6 +93,7 @@ open a PR unless asked.
 | `js/weeks.js` | fetches manifest + shards, with caching and fallbacks |
 | `js/words.js` | offline fallback copy of *an old* week — stale on purpose, only used when `data/weeks/*.json` cannot be fetched (e.g. `file://`). Not updated weekly |
 | `data/weeks/` | the source of truth: `manifest.json` + `shard-NNN.json` |
+| `tools/add-week.py` | adds a week to `data/weeks/` and validates it (`--check`) |
 | `api/tts.js` | Vercel function proxying Azure TTS (CommonJS, Node 18) |
 
 ## Data quirks
