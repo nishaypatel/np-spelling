@@ -1,7 +1,7 @@
 # np-spelling — notes for Claude
 
-Spell Squad: a static PWA my kid uses to practise the weekly school spelling
-list. **No build, no tests, no dependencies** — vanilla JS, Firebase compat
+Spell Squad: a static PWA my daughter uses to practise the weekly school
+spelling list (she/her, in case it comes up). **No build, no tests, no dependencies** — vanilla JS, Firebase compat
 from the CDN, one Vercel serverless function for cloud text-to-speech. Edit files, commit,
 push; Vercel serves the repo as-is.
 
