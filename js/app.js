@@ -718,17 +718,23 @@ function renderSettings() {
   themeGrid.innerHTML = THEMES.map(theme => `<button class="theme-card ${theme.id === STATE.settings.theme ? 'active' : ''}" data-theme="${theme.id}"><span>${theme.emoji}</span><b>${theme.name}</b></button>`).join('');
   themeGrid.querySelectorAll('[data-theme]').forEach(btn => btn.addEventListener('click', async () => { await saveSettings({ theme: btn.dataset.theme }); renderSettings(); showToast('Theme saved!'); }));
 
-  renderSegmented('voice-engine-options', [
+  const engineOptions = [
     { label: '📱 Device', value: 'device' },
     { label: '✨ Azure', value: 'azure' },
     { label: '🌍 Google', value: 'google' },
     { label: '🎙️ ElevenLabs', value: 'elevenlabs' },
-  ], STATE.settings.voiceEngine, async value => {
+  ];
+  const onEngineChange = async value => {
     await saveSettings({ voiceEngine: value });
     const note = qs('engine-note');
     if (note) note.textContent = engineNotes[value] || '';
     showToast('Voice engine saved!');
-  });
+  };
+  renderSegmented('voice-engine-options', engineOptions, STATE.settings.voiceEngine, onEngineChange);
+  // Then hide the cloud engines this deployment has no key for, so the list
+  // only offers voices that can actually speak. The device voice and whatever
+  // is currently selected always stay, and a failed check changes nothing.
+  hideUnconfiguredEngines(engineOptions, onEngineChange);
 
   renderSegmented('voice-gender-options', [
     { label: 'Female voice', value: 'female' },
@@ -809,6 +815,22 @@ async function renderWordHistory() {
       showScreen('screen-home');
     });
   });
+}
+
+async function hideUnconfiguredEngines(options, onChange) {
+  try {
+    const res = await fetch('/api/tts', { cache: 'no-store' });
+    if (!res.ok) return;
+    const providers = (await res.json()).providers || {};
+    const usable = options.filter(opt =>
+      opt.value === 'device'
+      || opt.value === STATE.settings.voiceEngine
+      || providers[opt.value] === 'configured');
+    if (usable.length === options.length || !qs('voice-engine-options')) return;
+    renderSegmented('voice-engine-options', usable, STATE.settings.voiceEngine, onChange);
+  } catch (e) {
+    console.warn('voice engine availability', e); // offline: leave every option in place
+  }
 }
 
 function renderSegmented(containerId, options, current, onChange) {

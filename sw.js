@@ -5,10 +5,19 @@
 //     revalidate — served instantly from cache, refreshed in the background.
 //   - Week data (data/weeks/*.json): network-first so a new week shows up
 //     immediately, with the cached copy as the offline fallback.
-//   - /api/tts and every other origin (Firebase auth/Firestore): untouched.
+//   - Spoken words (/api/tts?text=…): cache-first in a cache of their own that
+//     survives version bumps. A week's list is practised over and over, and the
+//     cloud voices are metered, so each clip is fetched once and then replayed
+//     from disk — which also makes practice work offline.
+//   - Everything else under /api/ and every other origin (Firebase): untouched.
 //
 // Bump CACHE_VERSION whenever shell files change so old caches are dropped.
-const CACHE_VERSION = 'spell-squad-v7';
+const CACHE_VERSION = 'spell-squad-v8';
+
+// Deliberately not versioned: spoken audio stays valid across deploys, and
+// re-fetching it costs provider quota. Pruned to the most recent entries.
+const TTS_CACHE = 'spell-squad-tts';
+const TTS_CACHE_MAX = 400;
 
 const SHELL = [
   '.',
@@ -45,7 +54,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_VERSION && k !== TTS_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -57,6 +66,10 @@ self.addEventListener('fetch', event => {
   const sameOrigin = url.origin === self.location.origin;
   const firebaseCdn = url.hostname === 'www.gstatic.com';
   if (!sameOrigin && !firebaseCdn) return;
+  if (sameOrigin && url.pathname === '/api/tts' && url.searchParams.has('text')) {
+    event.respondWith(speechCacheFirst(request));
+    return;
+  }
   if (sameOrigin && url.pathname.startsWith('/api/')) return;
 
   if (sameOrigin && url.pathname.includes('/data/weeks/')) {
@@ -65,6 +78,29 @@ self.addEventListener('fetch', event => {
     event.respondWith(staleWhileRevalidate(request));
   }
 });
+
+// Spoken clips never change for a given word/voice/speed, so a hit is served
+// without touching the network. Only successful audio is stored: an error
+// response would otherwise be replayed forever.
+async function speechCacheFirst(request) {
+  const cache = await caches.open(TTS_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const fresh = await fetch(request);
+  if (fresh.ok && (fresh.headers.get('Content-Type') || '').includes('audio')) {
+    await cache.put(request, fresh.clone());
+    pruneSpeechCache(cache);
+  }
+  return fresh;
+}
+
+// Oldest-first: Cache API keeps insertion order, so dropping from the front
+// removes the least recently added clips.
+async function pruneSpeechCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length <= TTS_CACHE_MAX) return;
+  await Promise.all(keys.slice(0, keys.length - TTS_CACHE_MAX).map(k => cache.delete(k)));
+}
 
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_VERSION);

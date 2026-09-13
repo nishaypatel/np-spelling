@@ -68,6 +68,11 @@ const _cloudRetryAt = {};
 const _audioCache = new Map();
 const AUDIO_CACHE_MAX = 60;
 
+function ttsUrl({ text, rate, gender, provider }) {
+  const params = new URLSearchParams({ text, rate: String(rate), gender, provider });
+  return `/api/tts?${params}`;
+}
+
 async function _fetchCloudAudio(ctx, text, rate, provider) {
   const gender = STATE?.settings?.voiceGender === 'male' ? 'male' : 'female';
   const key = `${provider}|${gender}|${rate}|${text}`;
@@ -76,11 +81,9 @@ async function _fetchCloudAudio(ctx, text, rate, provider) {
     _audioCache.delete(key); _audioCache.set(key, buf); // keep recently used
     return buf;
   }
-  const res = await fetch('/api/tts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, rate, gender, provider }),
-  });
+  // Asked for by URL rather than POSTed, so the service worker can keep the
+  // clip: the same word next session costs the provider nothing.
+  const res = await fetch(ttsUrl({ text, rate, gender, provider }));
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}));
     throw new Error(`TTS proxy ${res.status}: ${detail.error || 'unknown'}`);

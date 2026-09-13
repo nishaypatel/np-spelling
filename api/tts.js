@@ -11,9 +11,10 @@
 // A provider with no key configured simply reports itself unavailable, so the
 // app falls back to the device voice instead of failing.
 //
-//   POST /api/tts  { text, rate, gender, provider } -> audio/mpeg
-//   GET  /api/tts                                   -> which providers are configured
-//   GET  /api/tts?probe=1                           -> asks every configured provider to speak
+//   GET  /api/tts?text=cry&provider=…&gender=…&rate=… -> audio/mpeg (cacheable)
+//   POST /api/tts  { text, rate, gender, provider }    -> audio/mpeg
+//   GET  /api/tts                                     -> which providers are configured
+//   GET  /api/tts?probe=1                             -> asks every configured provider to speak
 
 function escapeXml(t) {
   return String(t).replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
@@ -151,12 +152,55 @@ async function elevenLookupVoice(gender) {
 
 const pickProvider = name => (Object.prototype.hasOwnProperty.call(PROVIDERS, name) ? name : 'azure');
 
+// One request's worth of speech, from either GET params or a POST body.
+async function speak({ provider: providerName, text: rawText, rate: rawRate, gender: rawGender }) {
+  const name = pickProvider(String(providerName || 'azure'));
+  const provider = PROVIDERS[name];
+  if (!provider.configured()) return { code: 503, error: `${provider.label} ${provider.missing()}` };
+
+  const text = String(rawText || '').slice(0, 1000).trim();
+  if (!text) return { code: 400, error: 'No text' };
+  const gender = rawGender === 'male' ? 'male' : 'female';
+  const rate = Math.max(0.5, Math.min(2, Number(rawRate) || 0.95));
+
+  try {
+    const result = await provider.synth({ text, rate, gender });
+    if (!result.ok) return { code: 502, error: `${provider.label} ${result.status}: ${(result.message || '').slice(0, 120)}` };
+    return { code: 200, audio: result.audio };
+  } catch (e) {
+    return { code: 502, error: `${provider.label}: ${e.message}` };
+  }
+}
+
+function sendSpeech(res, speech) {
+  if (speech.error) { res.status(speech.code).json({ error: speech.error }); return; }
+  res.setHeader('Content-Type', 'audio/mpeg');
+  // A week's words are asked for over and over; let them sit in caches.
+  res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+  res.status(200).send(speech.audio);
+}
+
 module.exports = async function handler(req, res) {
   // GET reports which providers are usable. ?probe=1 goes further and has each
   // configured one actually speak, so a rejected key shows up as a readable
   // status instead of a generic fallback toast in the app.
   if (req.method === 'GET') {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
+    // Speaking over GET keeps every clip addressable by URL, which is what lets
+    // the service worker and the browser cache them: the same word asked for
+    // twice costs the provider once.
+    if (url.searchParams.has('text')) {
+      const speech = await speak({
+        provider: url.searchParams.get('provider'),
+        text: url.searchParams.get('text'),
+        rate: url.searchParams.get('rate'),
+        gender: url.searchParams.get('gender'),
+      });
+      sendSpeech(res, speech);
+      return;
+    }
+
     const status = {};
     for (const [name, provider] of Object.entries(PROVIDERS)) {
       status[name] = provider.configured() ? 'configured' : provider.missing();
@@ -188,27 +232,5 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
-
-  const body = await readBody(req);
-  const name = pickProvider(String(body.provider || 'azure'));
-  const provider = PROVIDERS[name];
-  if (!provider.configured()) { res.status(503).json({ error: `${provider.label} ${provider.missing()}` }); return; }
-
-  const text = String(body.text || '').slice(0, 1000).trim();
-  if (!text) { res.status(400).json({ error: 'No text' }); return; }
-  const gender = body.gender === 'male' ? 'male' : 'female';
-  const rate = Math.max(0.5, Math.min(2, Number(body.rate) || 0.95));
-
-  try {
-    const result = await provider.synth({ text, rate, gender });
-    if (!result.ok) {
-      res.status(502).json({ error: `${provider.label} ${result.status}: ${(result.message || '').slice(0, 120)}` });
-      return;
-    }
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.status(200).send(result.audio);
-  } catch (e) {
-    res.status(502).json({ error: `${provider.label}: ${e.message}` });
-  }
+  sendSpeech(res, await speak(await readBody(req)));
 };
