@@ -43,6 +43,11 @@ function _getAudioCtx() {
 }
 
 let _azureSource = null;
+// While Azure is failing (bad key, quota, offline) every word would otherwise
+// pay a doomed round trip before the device voice speaks. After a failure,
+// skip Azure for a minute, then try again so a fixed key heals by itself.
+const AZURE_COOLDOWN_MS = 60000;
+let _azureRetryAt = 0;
 
 // Decoded-audio cache: replaying a word (or the same praise phrase) costs no
 // network round-trip. Keyed by text|rate|gender, capped to the newest entries.
@@ -100,10 +105,11 @@ const TTS = {
   },
   async speak(text, rate = STATE?.settings?.speechRate || 0.75, pitch = 1.05) {
     const engine = STATE?.settings?.voiceEngine || 'azure';
-    if (engine === 'azure') {
+    if (engine === 'azure' && Date.now() >= _azureRetryAt) {
       try { return await _azureSpeak(text, rate); }
       catch (e) {
         console.warn('Azure TTS:', e.message);
+        _azureRetryAt = Date.now() + AZURE_COOLDOWN_MS;
         if (!TTS._warnedFallback && typeof showToast === 'function') {
           TTS._warnedFallback = true;
           showToast('Azure voice unavailable — using the device voice.', 3500);

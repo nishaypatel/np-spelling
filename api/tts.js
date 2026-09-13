@@ -18,6 +18,12 @@ function readBody(req) {
   });
 }
 
+// Env vars are trimmed: a key or region pasted into the Vercel dashboard with
+// a trailing newline or space is accepted there but rejected by Azure with a
+// bare 401, which is indistinguishable from a wrong key.
+const azureKey = () => String(process.env.AZURE_SPEECH_KEY || '').trim();
+const azureRegion = () => String(process.env.AZURE_SPEECH_REGION || '').trim();
+
 // Calls Azure and returns the decoded response. Shared by the POST path and
 // the ?probe=1 diagnostic so both exercise exactly the same request.
 async function synthesize({ key, region, text, rate, gender }) {
@@ -46,13 +52,16 @@ module.exports = async function handler(req, res) {
   // rejected key, a wrong region or an exhausted quota shows up as a readable
   // status instead of a generic "Azure voice unavailable" toast in the app.
   if (req.method === 'GET') {
-    const key = process.env.AZURE_SPEECH_KEY;
-    const region = process.env.AZURE_SPEECH_REGION;
+    const key = azureKey();
+    const region = azureRegion();
+    const raw = process.env.AZURE_SPEECH_KEY || '';
     const info = {
       ok: true,
       hasKey: !!key,
       hasRegion: !!region,
       region: region || 'not set',
+      keyLength: key.length,
+      keyHadWhitespace: raw !== raw.trim(),
     };
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (!url.searchParams.has('probe')) { res.status(200).json(info); return; }
@@ -73,8 +82,8 @@ module.exports = async function handler(req, res) {
   }
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
-  const key = process.env.AZURE_SPEECH_KEY;
-  const region = process.env.AZURE_SPEECH_REGION;
+  const key = azureKey();
+  const region = azureRegion();
   if (!key || !region) { res.status(500).json({ error: `Missing env vars: key=${!!key} region=${!!region}` }); return; }
 
   const body = await readBody(req);
