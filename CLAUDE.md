@@ -65,7 +65,7 @@ python3 tools/add-week.py --check            # re-validate the current week
 Only if the defaults are wrong: `--week-id 2026-09-15` (a second list in the
 same week, or a catch-up week) and `--label "Week 31"`.
 
-**3. Commit both changed files and push** to the session's designated branch.
+**3. Commit both changed files and push** — see *Branches* below for where.
 Do not open a PR unless asked.
 
 That is the whole job. App code only needs touching if the list breaks an
@@ -107,6 +107,25 @@ key reports itself unavailable and the app just uses the device voice. Any
 cloud failure falls back to the device voice and skips that engine for a
 minute. **Env var changes need a redeploy** before the running deployment sees
 them.
+
+## Branches
+
+Push to `main`: Vercel deploys it, so nothing is live until it lands there, and
+work sitting on a branch looks to the family like the app is broken or stale.
+
+If a session is handed its own working branch, use it while working, then
+fast-forward `main` to it and say the branch can be deleted — **this sandbox
+cannot delete remote branches.** The git proxy silently refuses delete pushes
+(`Everything up-to-date`, nothing removed) and no GitHub tool available here
+deletes a ref, so every leftover branch is manual cleanup for the user. Eighteen
+had accumulated before anyone noticed, one of them holding word data that was
+never merged. Never leave a session's branch behind unmentioned.
+
+Deleting one is a single command on the user's own machine:
+
+```
+gh api -X DELETE repos/nishaypatel/np-spelling/git/refs/heads/<branch>
+```
 
 ## Data quirks
 
