@@ -324,7 +324,143 @@
       "pulled",
       "our"
     ],
-    "wordData": {},
+    "wordData": {
+      "jumped": {
+        "chunks": [
+          "jump",
+          "ed"
+        ],
+        "sentences": [
+          "She jumped over the puddle.",
+          "The frog jumped onto the log.",
+          "I jumped as high as I could."
+        ],
+        "family": "-ed suffix family",
+        "trickyPart": "ed",
+        "wrongVersions": [
+          "jumpt",
+          "jumpd"
+        ]
+      },
+      "played": {
+        "chunks": [
+          "play",
+          "ed"
+        ],
+        "sentences": [
+          "We played in the park all day.",
+          "She played with her toys.",
+          "They played a fun game together."
+        ],
+        "family": "-ed suffix family",
+        "trickyPart": "ay",
+        "wrongVersions": [
+          "playd",
+          "plaied"
+        ]
+      },
+      "rained": {
+        "chunks": [
+          "rain",
+          "ed"
+        ],
+        "sentences": [
+          "It rained all morning.",
+          "It rained on sports day.",
+          "It rained while we were outside."
+        ],
+        "family": "-ed suffix family",
+        "trickyPart": "ai",
+        "wrongVersions": [
+          "raind",
+          "rayned"
+        ]
+      },
+      "ended": {
+        "chunks": [
+          "end",
+          "ed"
+        ],
+        "sentences": [
+          "The story ended happily.",
+          "The game ended at half past three.",
+          "School ended early today."
+        ],
+        "family": "-ed suffix family",
+        "trickyPart": "ed",
+        "wrongVersions": [
+          "endd",
+          "endid"
+        ]
+      },
+      "reached": {
+        "chunks": [
+          "reach",
+          "ed"
+        ],
+        "sentences": [
+          "She reached the top of the hill.",
+          "He reached for the last biscuit.",
+          "We reached the beach by noon."
+        ],
+        "family": "-ed suffix family",
+        "trickyPart": "ea",
+        "wrongVersions": [
+          "reacht",
+          "reachd"
+        ]
+      },
+      "pushed": {
+        "chunks": [
+          "push",
+          "ed"
+        ],
+        "sentences": [
+          "He pushed the door open.",
+          "She pushed the cart down the aisle.",
+          "I pushed my bike up the hill."
+        ],
+        "family": "-ed suffix family",
+        "trickyPart": "sh",
+        "wrongVersions": [
+          "pusht",
+          "pushd"
+        ]
+      },
+      "pulled": {
+        "chunks": [
+          "pull",
+          "ed"
+        ],
+        "sentences": [
+          "She pulled the rope hard.",
+          "He pulled the door shut.",
+          "I pulled my jumper on."
+        ],
+        "family": "-ed suffix family",
+        "trickyPart": "ll",
+        "wrongVersions": [
+          "puld",
+          "pulld"
+        ]
+      },
+      "our": {
+        "chunks": [
+          "our"
+        ],
+        "sentences": [
+          "This is our dog.",
+          "We ate our dinner together.",
+          "Our class won the prize."
+        ],
+        "family": "tricky word",
+        "trickyPart": "our",
+        "wrongVersions": [
+          "are",
+          "ower"
+        ]
+      }
+    },
     "testMistakes": []
   },
   "2026-09-08": {
