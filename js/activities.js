@@ -43,7 +43,11 @@ function _deviceSpeak(text, rate = 0.75, pitch = 1.05) {
   });
 }
 
-// ── Azure TTS ───────────────────────────────────────────────
+// ── Cloud TTS (via /api/tts) ────────────────────────────────
+// Engines served by the proxy, and the name shown when one falls over. Any
+// other value ('device') means speak locally and never touch the network.
+const CLOUD_ENGINES = { azure: 'Azure', google: 'Google', elevenlabs: 'ElevenLabs' };
+
 let _audioCtx = null;
 function _getAudioCtx() {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -52,20 +56,21 @@ function _getAudioCtx() {
 }
 
 let _azureSource = null;
-// While Azure is failing (bad key, quota, offline) every word would otherwise
-// pay a doomed round trip before the device voice speaks. After a failure,
-// skip Azure for a minute, then try again so a fixed key heals by itself.
-const AZURE_COOLDOWN_MS = 60000;
-let _azureRetryAt = 0;
+// While a cloud voice is failing (bad key, quota, offline) every word would
+// otherwise pay a doomed round trip before the device voice speaks. After a
+// failure, skip that provider for a minute, then try again so a fixed key
+// heals by itself without a reload.
+const CLOUD_COOLDOWN_MS = 60000;
+const _cloudRetryAt = {};
 
 // Decoded-audio cache: replaying a word (or the same praise phrase) costs no
 // network round-trip. Keyed by text|rate|gender, capped to the newest entries.
 const _audioCache = new Map();
 const AUDIO_CACHE_MAX = 60;
 
-async function _fetchAzureAudio(ctx, text, rate) {
+async function _fetchCloudAudio(ctx, text, rate, provider) {
   const gender = STATE?.settings?.voiceGender === 'male' ? 'male' : 'female';
-  const key = `${gender}|${rate}|${text}`;
+  const key = `${provider}|${gender}|${rate}|${text}`;
   if (_audioCache.has(key)) {
     const buf = _audioCache.get(key);
     _audioCache.delete(key); _audioCache.set(key, buf); // keep recently used
@@ -74,7 +79,7 @@ async function _fetchAzureAudio(ctx, text, rate) {
   const res = await fetch('/api/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, rate, gender }),
+    body: JSON.stringify({ text, rate, gender, provider }),
   });
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}));
@@ -88,9 +93,9 @@ async function _fetchAzureAudio(ctx, text, rate) {
 
 // Calls our own /api/tts serverless proxy, which holds the Azure key
 // server-side (as a Vercel env var) — the key is never sent to the browser.
-async function _azureSpeak(text, rate = 0.75) {
+async function _cloudSpeak(text, rate = 0.75, provider = 'azure') {
   const ctx = _getAudioCtx(); // unlock AudioContext synchronously before the async fetch
-  const decoded = await _fetchAzureAudio(ctx, text, rate);
+  const decoded = await _fetchCloudAudio(ctx, text, rate, provider);
   return new Promise(resolve => {
     if (_azureSource) { try { _azureSource.stop(); } catch (e) {} }
     const src = ctx.createBufferSource();
@@ -106,22 +111,22 @@ const TTS = {
   // inside a tap handler so the auto-played word 250ms later is not muted.
   unlock() {
     try {
-      if ((STATE?.settings?.voiceEngine || 'azure') === 'azure') _getAudioCtx();
+      if (CLOUD_ENGINES[STATE?.settings?.voiceEngine || 'device']) _getAudioCtx();
       else if ('speechSynthesis' in window && !window.speechSynthesis.speaking) {
         window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
       }
     } catch (e) { /* unlock is best-effort */ }
   },
   async speak(text, rate = STATE?.settings?.speechRate || 0.75, pitch = 1.05) {
-    const engine = STATE?.settings?.voiceEngine || 'azure';
-    if (engine === 'azure' && Date.now() >= _azureRetryAt) {
-      try { return await _azureSpeak(text, rate); }
+    const engine = STATE?.settings?.voiceEngine || 'device';
+    if (CLOUD_ENGINES[engine] && Date.now() >= (_cloudRetryAt[engine] || 0)) {
+      try { return await _cloudSpeak(text, rate, engine); }
       catch (e) {
-        console.warn('Azure TTS:', e.message);
-        _azureRetryAt = Date.now() + AZURE_COOLDOWN_MS;
+        console.warn(`${CLOUD_ENGINES[engine]} TTS:`, e.message);
+        _cloudRetryAt[engine] = Date.now() + CLOUD_COOLDOWN_MS;
         if (!TTS._warnedFallback && typeof showToast === 'function') {
           TTS._warnedFallback = true;
-          showToast('Azure voice unavailable — using the device voice.', 3500);
+          showToast(`${CLOUD_ENGINES[engine]} voice unavailable — using the device voice.`, 3500);
         }
         return _deviceSpeak(text, rate, pitch);
       }
@@ -478,10 +483,6 @@ function runMissingLetters(words, activity = 'missing-letters') {
   render();
 }
 
-// Unscramble reads the word aloud only for words longer than this: short ones
-// are easy enough to spot in the letter bank.
-const UNSCRAMBLE_SPEAKER_MIN_LETTERS = 5;
-
 function runUnscramble(words, activity = 'unscramble') {
   let idx = 0;
   const results = [];
@@ -493,7 +494,6 @@ function runUnscramble(words, activity = 'unscramble') {
     const scrambled = shuffle([...word]);
     body.innerHTML = `<section class="activity-card-large apple-card">
       <p class="eyebrow">Tap the letters in order to build the word</p>
-      ${word.length > UNSCRAMBLE_SPEAKER_MIN_LETTERS ? `<button class="hw-play-btn" id="play-word" type="button" aria-label="Hear the word">🔊</button>` : ''}
       <div class="unscramble-answer" id="unscramble-answer"></div>
       <div class="letter-bank" id="letter-bank">${scrambled.map((ch, i) => `<button type="button" class="letter-block" data-i="${i}">${escapeHtml(ch)}</button>`).join('')}</div>
       <div class="answer-actions">
@@ -503,8 +503,6 @@ function runUnscramble(words, activity = 'unscramble') {
       <div class="hw-feedback" id="feedback" aria-live="polite"></div>
       <button class="btn btn-primary" id="check">Check ✓</button>
     </section>`;
-    const playBtn = document.getElementById('play-word'); // absent for short words
-    if (playBtn) playBtn.onclick = () => TTS.speak(word, STATE.settings.speechRate, 1.0);
     const answerEl = document.getElementById('unscramble-answer');
     const bank = document.getElementById('letter-bank');
     const picked = []; // { letter, btn }

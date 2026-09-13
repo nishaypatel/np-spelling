@@ -7,6 +7,8 @@ const ALLOWED_EMAILS = Object.keys(FAMILY_MAP);
 
 // Word-list sizes. The school usually sets 8 words a week, but some lists run
 // longer, so the app only enforces sane bounds on hand-edited lists.
+const VOICE_ENGINES = ['device', 'azure', 'google', 'elevenlabs'];
+
 const WORDS_PER_WEEK = 8;
 const MIN_WORDS_PER_WEEK = 4;
 const MAX_WORDS_PER_WEEK = 15;
@@ -41,7 +43,9 @@ const GAME_CATALOG = [
 
 const DEFAULT_SETTINGS = {
   theme: 'rainbow',
-  voiceEngine: 'azure',
+  // Device voice is the default: it always works, costs nothing and needs no
+  // key. The cloud engines are opt-in from Settings once one is configured.
+  voiceEngine: 'device',
   voiceGender: 'female',
   speechRate: 0.75,
   visibleGames: DEFAULT_VISIBLE_GAMES,
@@ -152,7 +156,7 @@ function normaliseSettings(raw = {}) {
   return {
     ...DEFAULT_SETTINGS,
     ...raw,
-    voiceEngine: ['azure', 'device'].includes(raw.voiceEngine) ? raw.voiceEngine : DEFAULT_SETTINGS.voiceEngine,
+    voiceEngine: VOICE_ENGINES.includes(raw.voiceEngine) ? raw.voiceEngine : DEFAULT_SETTINGS.voiceEngine,
     speechRate: Number(raw.speechRate || DEFAULT_SETTINGS.speechRate),
     visibleGames: visible.filter(id => GAME_CATALOG.some(game => game.id === id)),
     practiceSource: ['current', 'week', 'mistakes'].includes(raw.practiceSource) ? raw.practiceSource : DEFAULT_SETTINGS.practiceSource,
@@ -662,8 +666,10 @@ async function resetProgressWithConfirm() {
 
 function renderSettings() {
   const engineNotes = {
-    azure:  '✨ High-quality British neural voices via Azure (secure server proxy). Falls back to the device voice if unavailable.',
-    device: '📱 Uses your phone\'s or computer\'s built-in voice.',
+    device:     '📱 Your phone\'s or computer\'s own voice. Free, works offline, nothing to set up. On an iPhone, Settings → Accessibility → Spoken Content → Voices → English (UK) offers free Enhanced voices that sound much better than the default.',
+    azure:      '✨ British neural voices from Azure, through the app\'s own server so the key stays private. Needs AZURE_SPEECH_KEY and AZURE_SPEECH_REGION.',
+    google:     '🌍 British neural voices from Google Cloud Text-to-Speech. Needs GOOGLE_TTS_KEY. The Speed setting applies.',
+    elevenlabs: '🎙️ The most natural-sounding of the three, from ElevenLabs. Needs ELEVENLABS_API_KEY. The Speed setting does not apply to this one.',
   };
 
   qs('settings-body').innerHTML = `
@@ -713,10 +719,14 @@ function renderSettings() {
   themeGrid.querySelectorAll('[data-theme]').forEach(btn => btn.addEventListener('click', async () => { await saveSettings({ theme: btn.dataset.theme }); renderSettings(); showToast('Theme saved!'); }));
 
   renderSegmented('voice-engine-options', [
-    { label: '✨ Azure', value: 'azure' },
     { label: '📱 Device', value: 'device' },
+    { label: '✨ Azure', value: 'azure' },
+    { label: '🌍 Google', value: 'google' },
+    { label: '🎙️ ElevenLabs', value: 'elevenlabs' },
   ], STATE.settings.voiceEngine, async value => {
     await saveSettings({ voiceEngine: value });
+    const note = qs('engine-note');
+    if (note) note.textContent = engineNotes[value] || '';
     showToast('Voice engine saved!');
   });
 

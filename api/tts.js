@@ -1,10 +1,28 @@
-// Vercel serverless proxy for Azure Text-to-Speech.
-// Reads AZURE_SPEECH_KEY and AZURE_SPEECH_REGION from Vercel env vars.
-// Browser POSTs { text, rate, gender } → receives MP3 audio.
+// Vercel serverless proxy for cloud Text-to-Speech.
+//
+// Three providers sit behind one endpoint so the app can offer them as a
+// choice in Settings; whichever the browser asks for, it gets MP3 back. Keys
+// live in Vercel env vars and never reach the browser:
+//
+//   azure       AZURE_SPEECH_KEY + AZURE_SPEECH_REGION
+//   google      GOOGLE_TTS_KEY                     (Cloud Text-to-Speech API key)
+//   elevenlabs  ELEVENLABS_API_KEY                 (+ optional voice id overrides)
+//
+// A provider with no key configured simply reports itself unavailable, so the
+// app falls back to the device voice instead of failing.
+//
+//   POST /api/tts  { text, rate, gender, provider } -> audio/mpeg
+//   GET  /api/tts                                   -> which providers are configured
+//   GET  /api/tts?probe=1                           -> asks every configured provider to speak
 
 function escapeXml(t) {
   return String(t).replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
 }
+
+// Env vars are trimmed: a key pasted into the Vercel dashboard with a trailing
+// newline is accepted there but rejected by the provider, usually with a bare
+// 401 that looks identical to a wrong key.
+const env = name => String(process.env[name] || '').trim();
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -18,122 +36,139 @@ function readBody(req) {
   });
 }
 
-// Env vars are trimmed: a key or region pasted into the Vercel dashboard with
-// a trailing newline or space is accepted there but rejected by Azure with a
-// bare 401, which is indistinguishable from a wrong key.
-const azureKey = () => String(process.env.AZURE_SPEECH_KEY || '').trim();
-const azureRegion = () => String(process.env.AZURE_SPEECH_REGION || '').trim();
-
-// Calls Azure and returns the decoded response. Shared by the POST path and
-// the ?probe=1 diagnostic so both exercise exactly the same request.
-async function synthesize({ key, region, text, rate, gender }) {
-  const voice = gender === 'male' ? 'en-GB-RyanNeural' : 'en-GB-SoniaNeural';
-  const pct   = Math.round((rate - 0.95) * 100);
-  const ssml  = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-GB"><voice name="${voice}"><prosody rate="${pct >= 0 ? '+' : ''}${pct}%">${escapeXml(text)}</prosody></voice></speak>`;
-  const azureRes = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
-    method: 'POST',
-    headers: {
-      'Ocp-Apim-Subscription-Key': key,
-      'Content-Type': 'application/ssml+xml',
-      'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
+// Each provider: is it configured, and how does it turn text into MP3 bytes.
+// Every synth resolves to { ok, status, message } or { ok: true, audio }.
+const PROVIDERS = {
+  azure: {
+    label: 'Azure',
+    configured: () => !!(env('AZURE_SPEECH_KEY') && env('AZURE_SPEECH_REGION')),
+    missing: () => `needs AZURE_SPEECH_KEY (${env('AZURE_SPEECH_KEY') ? 'set' : 'missing'}) and AZURE_SPEECH_REGION (${env('AZURE_SPEECH_REGION') ? 'set' : 'missing'})`,
+    async synth({ text, rate, gender }) {
+      const region = env('AZURE_SPEECH_REGION');
+      const voice = gender === 'male' ? 'en-GB-RyanNeural' : 'en-GB-SoniaNeural';
+      const pct = Math.round((rate - 0.95) * 100);
+      const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-GB"><voice name="${voice}"><prosody rate="${pct >= 0 ? '+' : ''}${pct}%">${escapeXml(text)}</prosody></voice></speak>`;
+      const r = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': env('AZURE_SPEECH_KEY'),
+          'Content-Type': 'application/ssml+xml',
+          'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
+        },
+        body: ssml,
+      });
+      if (!r.ok) return { ok: false, status: r.status, message: (await r.text().catch(() => '')).slice(0, 200) };
+      return { ok: true, status: 200, audio: Buffer.from(await r.arrayBuffer()) };
     },
-    body: ssml,
-  });
-  if (!azureRes.ok) {
-    const msg = await azureRes.text().catch(() => '');
-    return { ok: false, status: azureRes.status, message: msg.slice(0, 200) };
-  }
-  return { ok: true, status: 200, audio: Buffer.from(await azureRes.arrayBuffer()) };
-}
+  },
 
-// Asks Azure's token endpoint whether the key is recognised in a region. A
-// Speech key is region-bound: used against the wrong region it fails exactly
-// like an invalid key, so the same key is tried across the common regions to
-// tell "wrong region" from "bad key". Only statuses are reported, never keys.
-const SCAN_REGIONS = ['uksouth', 'ukwest', 'westeurope', 'northeurope', 'eastus', 'westus2'];
+  google: {
+    label: 'Google',
+    configured: () => !!env('GOOGLE_TTS_KEY'),
+    missing: () => 'needs GOOGLE_TTS_KEY',
+    async synth({ text, rate, gender }) {
+      // Chirp/Neural2 are the good ones; -B and -A are the en-GB male/female pair.
+      const name = env('GOOGLE_TTS_VOICE') || (gender === 'male' ? 'en-GB-Neural2-B' : 'en-GB-Neural2-A');
+      const r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(env('GOOGLE_TTS_KEY'))}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text },
+          voice: { languageCode: 'en-GB', name },
+          audioConfig: { audioEncoding: 'MP3', speakingRate: rate },
+        }),
+      });
+      const payload = await r.json().catch(() => ({}));
+      if (!r.ok || !payload.audioContent) {
+        const message = payload.error?.message || JSON.stringify(payload).slice(0, 200);
+        return { ok: false, status: r.status, message: String(message).slice(0, 200) };
+      }
+      return { ok: true, status: 200, audio: Buffer.from(payload.audioContent, 'base64') };
+    },
+  },
 
-async function tokenCheck(key, region) {
-  try {
-    const r = await fetch(`https://${region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`, {
-      method: 'POST',
-      headers: { 'Ocp-Apim-Subscription-Key': key, 'Content-Length': '0' },
-    });
-    if (r.ok) return { region, accepted: true, status: r.status };
-    const body = await r.text().catch(() => '');
-    return { region, accepted: false, status: r.status, message: body.slice(0, 160) || undefined };
-  } catch (e) {
-    return { region, accepted: false, error: e.message };
-  }
-}
+  elevenlabs: {
+    label: 'ElevenLabs',
+    configured: () => !!env('ELEVENLABS_API_KEY'),
+    missing: () => 'needs ELEVENLABS_API_KEY',
+    async synth({ text, gender }) {
+      // Defaults are ElevenLabs' stock British voices; override per gender if
+      // you prefer different ones. Speaking rate is not adjustable here, so the
+      // Speed setting does not apply to this provider.
+      const voiceId = gender === 'male'
+        ? (env('ELEVENLABS_VOICE_MALE') || 'JBFqnCBsd6RMkjVDRZzb')
+        : (env('ELEVENLABS_VOICE_FEMALE') || 'Xb7hH8MSUJpSbSDYk0k2');
+      const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`, {
+        method: 'POST',
+        headers: { 'xi-api-key': env('ELEVENLABS_API_KEY'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, model_id: env('ELEVENLABS_MODEL') || 'eleven_multilingual_v2' }),
+      });
+      if (!r.ok) return { ok: false, status: r.status, message: (await r.text().catch(() => '')).slice(0, 200) };
+      return { ok: true, status: 200, audio: Buffer.from(await r.arrayBuffer()) };
+    },
+  },
+};
+
+const pickProvider = name => (Object.prototype.hasOwnProperty.call(PROVIDERS, name) ? name : 'azure');
 
 module.exports = async function handler(req, res) {
-  // Diagnostic GET so we can confirm the function runs and env vars are present.
-  // ?probe=1 goes one step further and actually asks Azure to say a word, so a
-  // rejected key, a wrong region or an exhausted quota shows up as a readable
-  // status instead of a generic "Azure voice unavailable" toast in the app.
+  // GET reports which providers are usable. ?probe=1 goes further and has each
+  // configured one actually speak, so a rejected key shows up as a readable
+  // status instead of a generic fallback toast in the app.
   if (req.method === 'GET') {
-    const key = azureKey();
-    const region = azureRegion();
-    const raw = process.env.AZURE_SPEECH_KEY || '';
-    const info = {
-      ok: true,
-      hasKey: !!key,
-      hasRegion: !!region,
-      region: region || 'not set',
-      keyLength: key.length,
-      keyHadWhitespace: raw !== raw.trim(),
-    };
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    if (!url.searchParams.has('probe')) { res.status(200).json(info); return; }
-    if (!key || !region) { res.status(200).json({ ...info, probe: 'skipped — env vars missing' }); return; }
-    try {
-      const result = await synthesize({ key, region, text: 'test', rate: 0.95, gender: 'female' });
-      const out = {
-        ...info,
-        probe: result.ok ? 'azure ok' : 'azure rejected the request',
-        azureStatus: result.status,
-        azureMessage: result.ok ? undefined : result.message,
-        audioBytes: result.ok ? result.audio.length : undefined,
-      };
-      // On a rejection, find out whether any region accepts this key at all.
-      if (!result.ok) {
-        const scans = await Promise.all(SCAN_REGIONS.map(r => tokenCheck(key, r)));
-        const accepted = scans.filter(r => r.accepted).map(r => r.region);
-        out.keyAcceptedIn = accepted;
-        out.verdict = accepted.length
-          ? `key belongs to ${accepted.join(', ')} — set AZURE_SPEECH_REGION to that and redeploy`
-          : 'no region accepts this key — it is wrong, regenerated, or key access is disabled on the resource';
-        out.regionChecks = scans.map(r => `${r.region}: ${r.accepted ? 'accepted' : r.status || r.error}`);
-      }
-      res.status(200).json(out);
-    } catch (e) {
-      res.status(200).json({ ...info, probe: 'request to azure failed', error: e.message });
+    const status = {};
+    for (const [name, provider] of Object.entries(PROVIDERS)) {
+      status[name] = provider.configured() ? 'configured' : provider.missing();
     }
+    const info = { ok: true, providers: status, region: env('AZURE_SPEECH_REGION') || 'not set' };
+    if (!url.searchParams.has('probe')) { res.status(200).json(info); return; }
+
+    const only = url.searchParams.get('provider');
+    const names = Object.keys(PROVIDERS).filter(n => (!only || n === only) && PROVIDERS[n].configured());
+    const probes = {};
+    for (const name of names) {
+      try {
+        const result = await PROVIDERS[name].synth({ text: 'test', rate: 0.95, gender: 'female' });
+        probes[name] = result.ok
+          ? { ok: true, audioBytes: result.audio.length }
+          : { ok: false, status: result.status, message: result.message || '(empty response body)' };
+      } catch (e) {
+        probes[name] = { ok: false, error: e.message };
+      }
+    }
+    const working = Object.keys(probes).filter(n => probes[n].ok);
+    res.status(200).json({
+      ...info,
+      probe: probes,
+      working,
+      verdict: working.length ? `usable: ${working.join(', ')}` : 'no configured provider is working — the app will use the device voice',
+    });
     return;
   }
+
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
-  const key = azureKey();
-  const region = azureRegion();
-  if (!key || !region) { res.status(500).json({ error: `Missing env vars: key=${!!key} region=${!!region}` }); return; }
-
   const body = await readBody(req);
+  const name = pickProvider(String(body.provider || 'azure'));
+  const provider = PROVIDERS[name];
+  if (!provider.configured()) { res.status(503).json({ error: `${provider.label} ${provider.missing()}` }); return; }
+
   const text = String(body.text || '').slice(0, 1000).trim();
   if (!text) { res.status(400).json({ error: 'No text' }); return; }
-
   const gender = body.gender === 'male' ? 'male' : 'female';
-  const rate   = Math.max(0.5, Math.min(2, Number(body.rate) || 0.95));
+  const rate = Math.max(0.5, Math.min(2, Number(body.rate) || 0.95));
 
   try {
-    const result = await synthesize({ key, region, text, rate, gender });
+    const result = await provider.synth({ text, rate, gender });
     if (!result.ok) {
-      res.status(502).json({ error: `Azure ${result.status}: ${result.message.slice(0, 120)}` });
+      res.status(502).json({ error: `${provider.label} ${result.status}: ${(result.message || '').slice(0, 120)}` });
       return;
     }
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.status(200).send(result.audio);
   } catch (e) {
-    res.status(502).json({ error: e.message });
+    res.status(502).json({ error: `${provider.label}: ${e.message}` });
   }
 };
