@@ -35,7 +35,7 @@ Reading the photo:
   in red), normally the last one or two — e.g. `old`, `cold`. Keep them in the
   list; just say so in `family`, as in `"-old word family (tricky word)"`.
 - Preserve capitals and apostrophes exactly: `July`, `Tuesday`, `I'm`.
-- Lists are usually 8 words, but not always (Week 30 has 10). Never truncate.
+- Lists are usually 8 words, but not always (Week 29 has 10). Never truncate.
 
 Writing the word data (see `js/activities.js` for what consumes it):
 
@@ -98,9 +98,11 @@ assumption — see the next section for the ones already removed.
 
 ## Data quirks
 
-- Weeks 1–24, 28 and 29 have empty `wordData` (imported in bulk; the app
-  derives chunks/sentences at runtime). Weeks 25–27 and 30 are hand-written.
-- Week 29 repeats Week 28's words — an artefact of the master import, left as-is.
+- Weeks 1–24 and 28 have empty `wordData` (imported in bulk; the app derives
+  chunks/sentences at runtime). Weeks 25–27 and 29 are hand-written.
+- The bulk import left a Week 29 that repeated Week 28's words; it was deleted
+  and the later weeks renumbered, so labels run 1–N with no gaps. Keep it that
+  way if a week is ever removed again.
 - A family can override a week's words in Firestore
   (`families/{familyId}/weeks/{weekId}`); that record wins over the JSON for
   that weekId only.
