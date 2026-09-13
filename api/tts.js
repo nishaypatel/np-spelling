@@ -46,6 +46,26 @@ async function synthesize({ key, region, text, rate, gender }) {
   return { ok: true, status: 200, audio: Buffer.from(await azureRes.arrayBuffer()) };
 }
 
+// Asks Azure's token endpoint whether the key is recognised in a region. A
+// Speech key is region-bound: used against the wrong region it fails exactly
+// like an invalid key, so the same key is tried across the common regions to
+// tell "wrong region" from "bad key". Only statuses are reported, never keys.
+const SCAN_REGIONS = ['uksouth', 'ukwest', 'westeurope', 'northeurope', 'eastus', 'westus2'];
+
+async function tokenCheck(key, region) {
+  try {
+    const r = await fetch(`https://${region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`, {
+      method: 'POST',
+      headers: { 'Ocp-Apim-Subscription-Key': key, 'Content-Length': '0' },
+    });
+    if (r.ok) return { region, accepted: true, status: r.status };
+    const body = await r.text().catch(() => '');
+    return { region, accepted: false, status: r.status, message: body.slice(0, 160) || undefined };
+  } catch (e) {
+    return { region, accepted: false, error: e.message };
+  }
+}
+
 module.exports = async function handler(req, res) {
   // Diagnostic GET so we can confirm the function runs and env vars are present.
   // ?probe=1 goes one step further and actually asks Azure to say a word, so a
@@ -68,13 +88,24 @@ module.exports = async function handler(req, res) {
     if (!key || !region) { res.status(200).json({ ...info, probe: 'skipped — env vars missing' }); return; }
     try {
       const result = await synthesize({ key, region, text: 'test', rate: 0.95, gender: 'female' });
-      res.status(200).json({
+      const out = {
         ...info,
         probe: result.ok ? 'azure ok' : 'azure rejected the request',
         azureStatus: result.status,
         azureMessage: result.ok ? undefined : result.message,
         audioBytes: result.ok ? result.audio.length : undefined,
-      });
+      };
+      // On a rejection, find out whether any region accepts this key at all.
+      if (!result.ok) {
+        const scans = await Promise.all(SCAN_REGIONS.map(r => tokenCheck(key, r)));
+        const accepted = scans.filter(r => r.accepted).map(r => r.region);
+        out.keyAcceptedIn = accepted;
+        out.verdict = accepted.length
+          ? `key belongs to ${accepted.join(', ')} — set AZURE_SPEECH_REGION to that and redeploy`
+          : 'no region accepts this key — it is wrong, regenerated, or key access is disabled on the resource';
+        out.regionChecks = scans.map(r => `${r.region}: ${r.accepted ? 'accepted' : r.status || r.error}`);
+      }
+      res.status(200).json(out);
     } catch (e) {
       res.status(200).json({ ...info, probe: 'request to azure failed', error: e.message });
     }
