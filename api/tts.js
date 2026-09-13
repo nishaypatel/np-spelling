@@ -92,22 +92,62 @@ const PROVIDERS = {
     configured: () => !!env('ELEVENLABS_API_KEY'),
     missing: () => 'needs ELEVENLABS_API_KEY',
     async synth({ text, gender }) {
-      // Defaults are ElevenLabs' stock British voices; override per gender if
-      // you prefer different ones. Speaking rate is not adjustable here, so the
-      // Speed setting does not apply to this provider.
-      const voiceId = gender === 'male'
-        ? (env('ELEVENLABS_VOICE_MALE') || 'JBFqnCBsd6RMkjVDRZzb')
-        : (env('ELEVENLABS_VOICE_FEMALE') || 'Xb7hH8MSUJpSbSDYk0k2');
-      const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`, {
-        method: 'POST',
-        headers: { 'xi-api-key': env('ELEVENLABS_API_KEY'), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, model_id: env('ELEVENLABS_MODEL') || 'eleven_multilingual_v2' }),
-      });
-      if (!r.ok) return { ok: false, status: r.status, message: (await r.text().catch(() => '')).slice(0, 200) };
-      return { ok: true, status: 200, audio: Buffer.from(await r.arrayBuffer()) };
+      // Speaking rate is not adjustable here, so the Speed setting does not
+      // apply to this provider.
+      const speak = async voiceId => fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
+        {
+          method: 'POST',
+          headers: { 'xi-api-key': env('ELEVENLABS_API_KEY'), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, model_id: env('ELEVENLABS_MODEL') || 'eleven_multilingual_v2' }),
+        },
+      );
+
+      let voiceId = await elevenVoiceId(gender);
+      let r = await speak(voiceId);
+      // A voice id that isn't in this account's library fails the request; look
+      // one up from the account itself and try once more, so a fresh free
+      // account works without anyone hunting for ids.
+      if (!r.ok && [400, 404, 422].includes(r.status)) {
+        const discovered = await elevenLookupVoice(gender);
+        if (discovered && discovered !== voiceId) {
+          voiceId = discovered;
+          r = await speak(voiceId);
+        }
+      }
+      if (!r.ok) return { ok: false, status: r.status, message: (await r.text().catch(() => '')).slice(0, 200), voiceId };
+      return { ok: true, status: 200, audio: Buffer.from(await r.arrayBuffer()), voiceId };
     },
   },
 };
+
+// ElevenLabs voices. The defaults are its stock British pair; either can be
+// overridden with an env var, and if neither exists in the account the library
+// is searched instead. Discovered ids are cached for the life of the instance.
+const ELEVEN_DEFAULTS = { female: 'Xb7hH8MSUJpSbSDYk0k2', male: 'JBFqnCBsd6RMkjVDRZzb' };
+const _elevenFound = {};
+
+async function elevenVoiceId(gender) {
+  const configured = gender === 'male' ? env('ELEVENLABS_VOICE_MALE') : env('ELEVENLABS_VOICE_FEMALE');
+  return configured || _elevenFound[gender] || ELEVEN_DEFAULTS[gender] || ELEVEN_DEFAULTS.female;
+}
+
+async function elevenLookupVoice(gender) {
+  try {
+    const r = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': env('ELEVENLABS_API_KEY') } });
+    if (!r.ok) return null;
+    const voices = (await r.json()).voices || [];
+    if (!voices.length) return null;
+    const wanted = gender === 'male' ? 'male' : 'female';
+    const british = v => /british|england|uk/i.test(`${v.labels?.accent || ''} ${v.labels?.description || ''}`);
+    const matches = v => (v.labels?.gender || '').toLowerCase() === wanted;
+    const pick = voices.find(v => matches(v) && british(v)) || voices.find(matches) || voices[0];
+    _elevenFound[gender] = pick.voice_id;
+    return pick.voice_id;
+  } catch (e) {
+    return null;
+  }
+}
 
 const pickProvider = name => (Object.prototype.hasOwnProperty.call(PROVIDERS, name) ? name : 'azure');
 
@@ -131,8 +171,8 @@ module.exports = async function handler(req, res) {
       try {
         const result = await PROVIDERS[name].synth({ text: 'test', rate: 0.95, gender: 'female' });
         probes[name] = result.ok
-          ? { ok: true, audioBytes: result.audio.length }
-          : { ok: false, status: result.status, message: result.message || '(empty response body)' };
+          ? { ok: true, audioBytes: result.audio.length, voiceId: result.voiceId }
+          : { ok: false, status: result.status, message: result.message || '(empty response body)', voiceId: result.voiceId };
       } catch (e) {
         probes[name] = { ok: false, error: e.message };
       }
