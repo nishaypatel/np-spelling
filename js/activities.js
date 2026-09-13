@@ -1,18 +1,27 @@
 // ── Text-to-Speech ─────────────────────────────────────────
 
 // ── Device voice helpers (Web Speech API) ──────────────────
-const FEMALE_VOICE_NAMES = ['Samantha','Serena','Karen','Moira','Tessa','Kate','Susan','Victoria','Zoe','Ava','Allison','Fiona','Veena','Martha','Hazel'];
-const MALE_VOICE_NAMES   = ['Daniel','Alex','Oliver','Arthur','Fred','Tom','Rishi','George','Thomas'];
+const FEMALE_VOICE_NAMES = ['Samantha','Serena','Karen','Moira','Tessa','Kate','Susan','Victoria','Zoe','Ava','Allison','Fiona','Veena','Martha','Hazel','Sonia','Libby','Maisie','Olivia','Emma'];
+const MALE_VOICE_NAMES   = ['Daniel','Alex','Oliver','Arthur','Fred','Tom','Rishi','George','Thomas','Ryan','Guy','Brandon'];
+// Names browsers give their better voices: Edge's "Microsoft Sonia Online
+// (Natural)" and iOS/macOS "Enhanced"/"Premium" downloads sound far closer to
+// a real person than the compact default, and cost nothing.
+const GOOD_VOICE_HINTS   = ['natural','enhanced','premium','neural','siri'];
 
 function voiceNameIncludes(voice, names) { return names.some(n => String(voice?.name||'').toLowerCase().includes(n.toLowerCase())); }
 function isEnglishVoice(v)       { return String(v?.lang||'').toLowerCase().startsWith('en'); }
 function isBritishEnglishVoice(v){ return String(v?.lang||'').toLowerCase() === 'en-gb'; }
 function isClearlyFemaleVoice(v) { return voiceNameIncludes(v, FEMALE_VOICE_NAMES) && !voiceNameIncludes(v, MALE_VOICE_NAMES); }
 function isClearlyMaleVoice(v)   { return voiceNameIncludes(v, MALE_VOICE_NAMES)   && !voiceNameIncludes(v, FEMALE_VOICE_NAMES); }
+function isGoodQualityVoice(v) { return voiceNameIncludes(v, GOOD_VOICE_HINTS); }
+// British first, then whichever of those sounds best; Array#sort is stable, so
+// voices the browser listed first still win a tie.
 function chooseVoice(voices, gender) {
+  const rank = v => (isBritishEnglishVoice(v) ? 2 : 0) + (isGoodQualityVoice(v) ? 1 : 0);
+  const best = list => (list.length ? [...list].sort((a, b) => rank(b) - rank(a))[0] : null);
   const en = voices.filter(isEnglishVoice);
   const gendered = en.filter(gender === 'male' ? isClearlyMaleVoice : isClearlyFemaleVoice);
-  return gendered.find(isBritishEnglishVoice) || gendered[0] || en.find(isBritishEnglishVoice) || en[0] || null;
+  return best(gendered) || best(en) || null;
 }
 
 // Pre-cache voices so _deviceSpeak() stays synchronous (iOS gesture requirement)
