@@ -2,7 +2,7 @@
 
 Spell Squad: a static PWA my kid uses to practise the weekly school spelling
 list. **No build, no tests, no dependencies** — vanilla JS, Firebase compat
-from the CDN, one Vercel serverless function for Azure TTS. Edit files, commit,
+from the CDN, one Vercel serverless function for cloud text-to-speech. Edit files, commit,
 push; Vercel serves the repo as-is.
 
 ## The usual request: "Here are the words for this week" + a photo
@@ -94,7 +94,19 @@ assumption — see the next section for the ones already removed.
 | `js/words.js` | offline fallback copy of *an old* week — stale on purpose, only used when `data/weeks/*.json` cannot be fetched (e.g. `file://`). Not updated weekly |
 | `data/weeks/` | the source of truth: `manifest.json` + `shard-NNN.json` |
 | `tools/add-week.py` | adds a week to `data/weeks/` and validates it (`--check`) |
-| `api/tts.js` | Vercel function proxying Azure TTS (CommonJS, Node 18) |
+| `api/tts.js` | Vercel function proxying cloud TTS — Azure, Google or ElevenLabs, one env var set each (CommonJS, Node 18). `GET /api/tts?probe=1` reports which are working |
+
+## Voices
+
+The app speaks through `js/activities.js`. `Settings → Voice Engine` picks one
+of `device` (the default: the browser's own voice, free and offline) or the
+cloud engines `azure`, `google`, `elevenlabs`, which go through `/api/tts`.
+Each cloud engine needs its own Vercel env vars (`AZURE_SPEECH_KEY` +
+`AZURE_SPEECH_REGION`, `GOOGLE_TTS_KEY`, `ELEVENLABS_API_KEY`); one without a
+key reports itself unavailable and the app just uses the device voice. Any
+cloud failure falls back to the device voice and skips that engine for a
+minute. **Env var changes need a redeploy** before the running deployment sees
+them.
 
 ## Data quirks
 
