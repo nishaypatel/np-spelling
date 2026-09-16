@@ -70,7 +70,7 @@ const AUDIO_CACHE_MAX = 60;
 
 function ttsUrl({ text, rate, gender, provider }) {
   const params = new URLSearchParams({ text, rate: String(rate), gender, provider });
-  return `/api/tts?${params}`;
+  return `/spelling/api/tts?${params}`;
 }
 
 async function _fetchCloudAudio(ctx, text, rate, provider) {

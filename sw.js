@@ -12,7 +12,7 @@
 //   - Everything else under /api/ and every other origin (Firebase): untouched.
 //
 // Bump CACHE_VERSION whenever shell files change so old caches are dropped.
-const CACHE_VERSION = 'spell-squad-v8';
+const CACHE_VERSION = 'spell-squad-shared-home-v9';
 
 // Deliberately not versioned: spoken audio stays valid across deploys, and
 // re-fetching it costs provider quota. Pruned to the most recent entries.
@@ -66,11 +66,11 @@ self.addEventListener('fetch', event => {
   const sameOrigin = url.origin === self.location.origin;
   const firebaseCdn = url.hostname === 'www.gstatic.com';
   if (!sameOrigin && !firebaseCdn) return;
-  if (sameOrigin && url.pathname === '/api/tts' && url.searchParams.has('text')) {
+  if (sameOrigin && url.pathname === '/spelling/api/tts' && url.searchParams.has('text')) {
     event.respondWith(speechCacheFirst(request));
     return;
   }
-  if (sameOrigin && url.pathname.startsWith('/api/')) return;
+  if (sameOrigin && url.pathname.startsWith('/spelling/api/')) return;
 
   if (sameOrigin && url.pathname.includes('/data/weeks/')) {
     event.respondWith(networkFirst(request));

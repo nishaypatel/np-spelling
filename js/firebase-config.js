@@ -1,8 +1,8 @@
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyB15JiXLdI4I1VVfHoUfhL1gpu1PXYVwDk",
-  authDomain: "np-spelling.firebaseapp.com",
-  projectId: "np-spelling",
-  storageBucket: "np-spelling.firebasestorage.app",
-  messagingSenderId: "851912392138",
-  appId: "1:851912392138:web:00a05429221b497f0c6333"
+  apiKey: "AIzaSyDRzzpk-stecVmxZpkgn2CJM4xgGWTPSUQ",
+  authDomain: "np-personal-apps-nishaypatel.firebaseapp.com",
+  projectId: "np-personal-apps-nishaypatel",
+  storageBucket: "np-personal-apps-nishaypatel.firebasestorage.app",
+  messagingSenderId: "257625316323",
+  appId: "1:257625316323:web:4c5a3e12a39010c4a01ed6"
 };

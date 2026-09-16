@@ -819,7 +819,7 @@ async function renderWordHistory() {
 
 async function hideUnconfiguredEngines(options, onChange) {
   try {
-    const res = await fetch('/api/tts', { cache: 'no-store' });
+    const res = await fetch('/spelling/api/tts', { cache: 'no-store' });
     if (!res.ok) return;
     const providers = (await res.json()).providers || {};
     const usable = options.filter(opt =>
