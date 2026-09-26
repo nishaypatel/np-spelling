@@ -94,7 +94,8 @@ assumption — see the next section for the ones already removed.
 | `js/words.js` | offline fallback copy of *an old* week — stale on purpose, only used when `data/weeks/*.json` cannot be fetched (e.g. `file://`). Not updated weekly |
 | `data/weeks/` | the source of truth: `manifest.json` + `shard-NNN.json` |
 | `tools/add-week.py` | adds a week to `data/weeks/` and validates it (`--check`) |
-| `api/tts.js` | Vercel function proxying cloud TTS — Azure, Google or ElevenLabs, one env var set each (CommonJS, Node 18). `GET /api/tts?probe=1` reports which are working |
+| `api/tts.js` | Vercel function proxying cloud TTS — Azure, Google or ElevenLabs, one env var set each (CommonJS, Node 18). Needs a signed-in user with the `spelling` grant. `GET /api/tts?probe=1` reports which are working |
+| `api/_shared-auth.js` | CommonJS copy of the shared sign-in check kept identical in daily, fuel-prices and np-rtt-train — copy fixes across |
 
 ## Voices
 
@@ -134,6 +135,9 @@ gh api -X DELETE repos/nishaypatel/np-spelling/git/refs/heads/<branch>
 - The bulk import left a Week 29 that repeated Week 28's words; it was deleted
   and the later weeks renumbered, so labels run 1–N with no gaps. Keep it that
   way if a week is ever removed again.
+- Who may use the app is the `spelling` grant in Firestore `appAccess/{uid}`
+  (the same grant that shows the homepage tile). `FAMILY_MAP` in `js/app.js`
+  only says which family's data an account uses; an account needs both.
 - A family can override a week's words in Firestore
   (`families/{familyId}/weeks/{weekId}`); that record wins over the JSON for
   that weekId only.

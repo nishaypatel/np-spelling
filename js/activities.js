@@ -61,6 +61,7 @@ let _azureSource = null;
 // failure, skip that provider for a minute, then try again so a fixed key
 // heals by itself without a reload.
 const CLOUD_COOLDOWN_MS = 60000;
+const CLOUD_TIMEOUT_MS = 4000;
 const _cloudRetryAt = {};
 
 // Decoded-audio cache: replaying a word (or the same praise phrase) costs no
@@ -82,13 +83,27 @@ async function _fetchCloudAudio(ctx, text, rate, provider) {
     return buf;
   }
   // Asked for by URL rather than POSTed, so the service worker can keep the
-  // clip: the same word next session costs the provider nothing.
-  const res = await fetch(ttsUrl({ text, rate, gender, provider }));
-  if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error(`TTS proxy ${res.status}: ${detail.error || 'unknown'}`);
+  // clip: the same word next session costs the provider nothing. The proxy
+  // checks the Firebase sign-in, and a slow network gives up after a few
+  // seconds so the device voice speaks instead of leaving a silence.
+  const token = typeof auth !== 'undefined' ? await auth.currentUser?.getIdToken() : null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CLOUD_TIMEOUT_MS);
+  let audio;
+  try {
+    const res = await fetch(ttsUrl({ text, rate, gender, provider }), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(`TTS proxy ${res.status}: ${detail.error || 'unknown'}`);
+    }
+    audio = await res.arrayBuffer();
+  } finally {
+    clearTimeout(timer);
   }
-  const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
+  const decoded = await ctx.decodeAudioData(audio);
   _audioCache.set(key, decoded);
   if (_audioCache.size > AUDIO_CACHE_MAX) _audioCache.delete(_audioCache.keys().next().value);
   return decoded;

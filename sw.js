@@ -12,7 +12,7 @@
 //   - Everything else under /api/ and every other origin (Firebase): untouched.
 //
 // Bump CACHE_VERSION whenever shell files change so old caches are dropped.
-const CACHE_VERSION = 'spell-squad-shared-home-v9';
+const CACHE_VERSION = 'spell-squad-shared-home-v10';
 
 // Deliberately not versioned: spoken audio stays valid across deploys, and
 // re-fetching it costs provider quota. Pruned to the most recent entries.
@@ -46,10 +46,26 @@ self.addEventListener('install', event => {
     caches.open(CACHE_VERSION)
       // Cache each file independently: one flaky URL (e.g. the CDN) must not
       // block the whole install — misses are picked up at runtime instead.
-      .then(cache => Promise.all(SHELL.map(url => cache.add(url).catch(e => console.warn('sw precache skipped', url, e.message)))))
+      .then(cache => Promise.all([
+        ...SHELL.map(url => cache.add(url).catch(e => console.warn('sw precache skipped', url, e.message))),
+        precacheCurrentShard(cache),
+      ]))
       .then(() => self.skipWaiting())
   );
 });
+
+// shard-001 is in SHELL for the oldest weeks; the week actually being practised
+// lives in whichever shard the manifest names, which changes as weeks are
+// added. Read it from the manifest so a first offline visit still has it.
+async function precacheCurrentShard(cache) {
+  try {
+    const manifest = await (await fetch('data/weeks/manifest.json', { cache: 'no-cache' })).json();
+    const entry = manifest.weeks.find(w => w.weekId === manifest.currentWeekId) || manifest.weeks[manifest.weeks.length - 1];
+    if (entry?.shard) await cache.add(`data/weeks/${entry.shard}`);
+  } catch (e) {
+    console.warn('sw precache skipped current shard', e.message);
+  }
+}
 
 self.addEventListener('activate', event => {
   event.waitUntil(
@@ -123,6 +139,8 @@ async function staleWhileRevalidate(request) {
       if (res && (res.ok || res.type === 'opaque')) cache.put(request, res.clone());
       return res;
     })
-    .catch(() => cached);
+    // Offline with nothing cached: a network error the page can handle, not
+    // an undefined that respondWith() rejects.
+    .catch(() => cached || Response.error());
   return cached || refresh;
 }

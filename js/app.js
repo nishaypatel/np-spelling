@@ -1,9 +1,11 @@
 // ── Family Groups ─────────────────────────────────────────
+// Which family's data an account reads and writes. This is NOT who may use
+// the app: that is the `spelling` grant in Firestore appAccess/{uid}, the same
+// grant the homepage uses to show the Spelling tile. An account needs both.
 const FAMILY_MAP = {
   'nishaypatel@gmail.com': 'patel-family',
   'prinapatel1097@gmail.com': 'patel-family',
 };
-const ALLOWED_EMAILS = Object.keys(FAMILY_MAP);
 
 // Word-list sizes. The school usually sets 8 words a week, but some lists run
 // longer, so the app only enforces sane bounds on hand-edited lists.
@@ -318,40 +320,54 @@ async function resolveWeekPool(weekId) {
   return { words: [...full.words], wordData: enrichWordData(full.words, full.wordData || {}) };
 }
 
+// Every family week record in one round trip, keyed by weekId. These loops
+// used to read one week at a time, in turn — 29 sequential reads and growing.
+async function loadFamilyWeekDocs(weekIds) {
+  const docs = new Map();
+  if (!STATE.familyId) return docs;
+  const weeksRef = db.collection('families').doc(STATE.familyId).collection('weeks');
+  try {
+    (await weeksRef.get()).forEach(doc => docs.set(doc.id, doc.data()));
+  } catch (e) {
+    // Rules that allow reading a week but not listing them: read each one,
+    // in parallel rather than in turn.
+    console.warn('loadFamilyWeekDocs: list failed, reading weeks one by one', e.code || e);
+    await Promise.all(weekIds.map(id => weeksRef.doc(id).get()
+      .then(doc => { if (doc.exists) docs.set(id, doc.data()); })
+      .catch(err => console.warn('loadFamilyWeekDocs', id, err))));
+  }
+  return docs;
+}
+
 // Fetches each week's testMistakes (family override if present, else the
 // bundled default) and unions the words that were ever marked wrong,
 // together with their word data so games can show chunks/sentences.
 async function collectAllMistakes() {
   const weeks = STATE.manifest?.weeks || [];
+  const [fullWeeks, familyDocs] = await Promise.all([
+    Promise.all(weeks.map(entry => loadWeekData(entry).catch(e => {
+      console.warn('collectAllMistakes: week load failed', entry.weekId, e);
+      return null;
+    }))),
+    loadFamilyWeekDocs(weeks.map(entry => entry.weekId)),
+  ]);
   const seen = new Set();
   const words = [];
   const wordData = {};
-  for (const entry of weeks) {
-    let mistakes = [];
-    let weekWordData = {};
-    try {
-      const full = await loadWeekData(entry);
-      weekWordData = full.wordData || {};
-      mistakes = Array.isArray(full.testMistakes) ? full.testMistakes : [];
-    } catch (e) {
-      console.warn('collectAllMistakes: week load failed', entry.weekId, e);
-    }
-    if (STATE.familyId) {
-      try {
-        const doc = await db.collection('families').doc(STATE.familyId).collection('weeks').doc(entry.weekId).get();
-        if (doc.exists && Array.isArray(doc.data().testMistakes)) mistakes = doc.data().testMistakes;
-        if (doc.exists && doc.data().wordData) weekWordData = { ...weekWordData, ...doc.data().wordData };
-      } catch (e) {
-        console.warn('collectAllMistakes: firestore read failed', entry.weekId, e);
-      }
-    }
+  weeks.forEach((entry, i) => {
+    const full = fullWeeks[i];
+    let weekWordData = full?.wordData || {};
+    let mistakes = Array.isArray(full?.testMistakes) ? full.testMistakes : [];
+    const family = familyDocs.get(entry.weekId);
+    if (family && Array.isArray(family.testMistakes)) mistakes = family.testMistakes;
+    if (family?.wordData) weekWordData = { ...weekWordData, ...family.wordData };
     mistakes.forEach(word => {
       if (seen.has(word)) return;
       seen.add(word);
       words.push(word);
       wordData[word] = weekWordData[word] || autoDetectPatterns(word);
     });
-  }
+  });
   return { words, wordData: enrichWordData(words, wordData) };
 }
 
@@ -406,22 +422,15 @@ async function saveTestMistakes(mistakes) {
 // currently active one) ────────────────────────────────────────────────
 async function loadAllWeeksMistakes() {
   const weeks = STATE.manifest?.weeks || [];
-  const out = [];
-  for (const entry of weeks) {
-    let mistakes = Array.isArray(entry.testMistakes) ? entry.testMistakes : [];
-    let words = entry.words;
-    if (STATE.familyId) {
-      try {
-        const doc = await db.collection('families').doc(STATE.familyId).collection('weeks').doc(entry.weekId).get();
-        if (doc.exists && Array.isArray(doc.data().testMistakes)) mistakes = doc.data().testMistakes;
-        if (doc.exists && Array.isArray(doc.data().words)) words = doc.data().words; // family may have edited the word list
-      } catch (e) {
-        console.warn('loadAllWeeksMistakes: firestore read failed', entry.weekId, e);
-      }
-    }
-    out.push({ weekId: entry.weekId, label: entry.label, words, mistakes: mistakes.filter(w => words.includes(w)) });
-  }
-  return out;
+  const familyDocs = await loadFamilyWeekDocs(weeks.map(entry => entry.weekId));
+  return weeks.map(entry => {
+    const family = familyDocs.get(entry.weekId);
+    const mistakes = Array.isArray(family?.testMistakes) ? family.testMistakes
+      : Array.isArray(entry.testMistakes) ? entry.testMistakes : [];
+    // The family may have edited the word list.
+    const words = Array.isArray(family?.words) ? family.words : entry.words;
+    return { weekId: entry.weekId, label: entry.label, words, mistakes: mistakes.filter(w => words.includes(w)) };
+  });
 }
 
 async function saveWeekMistakes(weekId, mistakes) {
@@ -888,20 +897,38 @@ function wireNavigation() {
 
 wireNavigation();
 
+// 'ok', 'denied' or 'no-family'. The grant is read from Firestore; if that read
+// cannot happen at all (offline, with nothing cached), a family account is let
+// in so practice keeps working offline — the same accounts that were allowed
+// before grants existed. A definite "no" is always a no.
+async function checkSpellingAccess(user, email) {
+  try {
+    const snap = await db.collection('appAccess').doc(user.uid).get();
+    if (!snap.exists || snap.data()?.spelling !== true) return 'denied';
+  } catch (e) {
+    if (e?.code === 'permission-denied') return 'denied';
+    console.warn('checkSpellingAccess: grant unreadable, using the family list', e?.code || e);
+    return FAMILY_MAP[email] ? 'ok' : 'denied';
+  }
+  return FAMILY_MAP[email] ? 'ok' : 'no-family';
+}
+
 auth.onAuthStateChanged(async user => {
   if (user) {
-    const email = user.email.toLowerCase();
-    if (!ALLOWED_EMAILS.includes(email)) {
+    const email = String(user.email || '').toLowerCase();
+    const access = await checkSpellingAccess(user, email);
+    if (access !== 'ok') {
       await auth.signOut();
-      showToast('Sorry, you are not authorised to use this app.');
+      showToast(access === 'no-family'
+        ? 'This account has Spelling access but is not linked to a family yet.'
+        : 'Sorry, you are not authorised to use this app.', 4000);
       showScreen('screen-login');
       return;
     }
     STATE.user = user;
     STATE.familyId = FAMILY_MAP[email];
-    await loadSettings();
-    await loadStats();
-    await loadCurrentWeek();
+    // Independent reads: in parallel, not three round trips in turn.
+    await Promise.all([loadSettings(), loadStats(), loadCurrentWeek()]);
     STATE.activePool = { words: STATE.words, wordData: STATE.wordData }; // cheap default; refreshActivePool() runs the real resolution when Practice opens
     renderHome();
     showScreen('screen-home');

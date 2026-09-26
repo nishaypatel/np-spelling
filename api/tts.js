@@ -15,6 +15,15 @@
 //   POST /api/tts  { text, rate, gender, provider }    -> audio/mpeg
 //   GET  /api/tts                                     -> which providers are configured
 //   GET  /api/tts?probe=1                             -> asks every configured provider to speak
+//
+// Every call needs a Firebase ID token with the `spelling` grant: each one can
+// spend metered provider quota, so none of them is open to the internet.
+
+const { authorizeSharedFirebaseRequest } = require('./_shared-auth.js');
+
+// Longest thing the app says is a short sentence or a praise line; nothing it
+// speaks comes close to this.
+const MAX_TEXT_CHARS = 300;
 
 function escapeXml(t) {
   return String(t).replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
@@ -158,7 +167,7 @@ async function speak({ provider: providerName, text: rawText, rate: rawRate, gen
   const provider = PROVIDERS[name];
   if (!provider.configured()) return { code: 503, error: `${provider.label} ${provider.missing()}` };
 
-  const text = String(rawText || '').slice(0, 1000).trim();
+  const text = String(rawText || '').slice(0, MAX_TEXT_CHARS).trim();
   if (!text) return { code: 400, error: 'No text' };
   const gender = rawGender === 'male' ? 'male' : 'female';
   const rate = Math.max(0.5, Math.min(2, Number(rawRate) || 0.95));
@@ -175,12 +184,15 @@ async function speak({ provider: providerName, text: rawText, rate: rawRate, gen
 function sendSpeech(res, speech) {
   if (speech.error) { res.status(speech.code).json({ error: speech.error }); return; }
   res.setHeader('Content-Type', 'audio/mpeg');
-  // A week's words are asked for over and over; let them sit in caches.
-  res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+  // A week's words are asked for over and over. The app's service worker keeps
+  // each clip; `private` keeps a signed-in response out of any shared cache.
+  res.setHeader('Cache-Control', 'private, max-age=604800, immutable');
   res.status(200).send(speech.audio);
 }
 
 module.exports = async function handler(req, res) {
+  if (!(await authorizeSharedFirebaseRequest(req, res, 'spelling'))) return;
+
   // GET reports which providers are usable. ?probe=1 goes further and has each
   // configured one actually speak, so a rejected key shows up as a readable
   // status instead of a generic fallback toast in the app.
