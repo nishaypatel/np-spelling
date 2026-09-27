@@ -657,7 +657,7 @@
   "2026-09-15": {
     "weekId": "2026-09-15",
     "label": "Week 30",
-    "theme": "c saying /s/ (soft c)",
+    "theme": "/s/ spelt c",
     "words": [
       "race",
       "ice",
@@ -681,7 +681,7 @@
           "I want to win the race.",
           "The race was very close."
         ],
-        "family": "soft c (c saying /s/) family",
+        "family": "/s/ spelt c family",
         "trickyPart": "c",
         "wrongVersions": [
           "rase",
@@ -698,7 +698,7 @@
           "I put ice in my drink.",
           "The pond turned to ice in winter."
         ],
-        "family": "soft c (c saying /s/) family",
+        "family": "/s/ spelt c family",
         "trickyPart": "c",
         "wrongVersions": [
           "iec",
@@ -715,7 +715,7 @@
           "The robber was locked in a cell.",
           "She looked at the cell under a microscope."
         ],
-        "family": "soft c (c saying /s/) family",
+        "family": "/s/ spelt c family",
         "trickyPart": "c",
         "wrongVersions": [
           "sell",
@@ -733,7 +733,7 @@
           "London is a big city.",
           "I live in a small city."
         ],
-        "family": "soft c (c saying /s/) family",
+        "family": "/s/ spelt c family",
         "trickyPart": "c",
         "wrongVersions": [
           "sity",
@@ -751,7 +751,7 @@
           "That is a fancy hat.",
           "We ate at a fancy restaurant."
         ],
-        "family": "soft c (c saying /s/) family",
+        "family": "/s/ spelt c family",
         "trickyPart": "c",
         "wrongVersions": [
           "fansy",
@@ -768,7 +768,7 @@
           "The dress was covered in lace.",
           "He tied the lace on his shoe."
         ],
-        "family": "soft c (c saying /s/) family",
+        "family": "/s/ spelt c family",
         "trickyPart": "c",
         "wrongVersions": [
           "lase",
@@ -785,7 +785,7 @@
           "There is space for one more.",
           "I need more space in my bag."
         ],
-        "family": "soft c (c saying /s/) family",
+        "family": "/s/ spelt c family",
         "trickyPart": "c",
         "wrongVersions": [
           "spase",
