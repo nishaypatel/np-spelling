@@ -1,0 +1,193 @@
+{
+  "2026-09-22": {
+    "weekId": "2026-09-22",
+    "label": "Week 31",
+    "theme": "/j/ spelt g",
+    "words": [
+      "gem",
+      "germ",
+      "magic",
+      "danger",
+      "ginger",
+      "digest",
+      "energy",
+      "giraffe",
+      "every",
+      "everybody"
+    ],
+    "wordData": {
+      "gem": {
+        "chunks": [
+          "g",
+          "em"
+        ],
+        "sentences": [
+          "She found a shiny gem.",
+          "The gem sparkled in the light.",
+          "He wore a ring with a gem."
+        ],
+        "family": "/j/ spelt g family",
+        "trickyPart": "g",
+        "wrongVersions": [
+          "jem",
+          "geam"
+        ]
+      },
+      "germ": {
+        "chunks": [
+          "g",
+          "erm"
+        ],
+        "sentences": [
+          "A germ can make you sick.",
+          "I saw a germ under the microscope.",
+          "Cover your mouth so germs don't spread."
+        ],
+        "family": "/j/ spelt g family",
+        "trickyPart": "g",
+        "wrongVersions": [
+          "jerm",
+          "germe"
+        ]
+      },
+      "magic": {
+        "chunks": [
+          "ma",
+          "gic"
+        ],
+        "sentences": [
+          "The magician did a magic trick.",
+          "It felt like magic.",
+          "She waved her magic wand."
+        ],
+        "family": "/j/ spelt g family",
+        "trickyPart": "g",
+        "wrongVersions": [
+          "majic",
+          "madgic"
+        ]
+      },
+      "danger": {
+        "chunks": [
+          "dan",
+          "ger"
+        ],
+        "sentences": [
+          "The sign warned of danger.",
+          "He was in danger.",
+          "They escaped the danger."
+        ],
+        "family": "/j/ spelt g family",
+        "trickyPart": "g",
+        "wrongVersions": [
+          "dangar",
+          "daynger"
+        ]
+      },
+      "ginger": {
+        "chunks": [
+          "gin",
+          "ger"
+        ],
+        "sentences": [
+          "The biscuit was flavoured with ginger.",
+          "I like ginger in my tea.",
+          "The cat had ginger fur."
+        ],
+        "family": "/j/ spelt g family",
+        "trickyPart": "g",
+        "wrongVersions": [
+          "ginjer",
+          "genger"
+        ]
+      },
+      "digest": {
+        "chunks": [
+          "di",
+          "gest"
+        ],
+        "sentences": [
+          "It takes time to digest your food.",
+          "Your stomach helps you digest lunch.",
+          "Some foods are hard to digest."
+        ],
+        "family": "/j/ spelt g family",
+        "trickyPart": "g",
+        "wrongVersions": [
+          "dijest",
+          "digjest"
+        ]
+      },
+      "energy": {
+        "chunks": [
+          "en",
+          "er",
+          "gy"
+        ],
+        "sentences": [
+          "Running takes a lot of energy.",
+          "The sun gives us energy.",
+          "I felt full of energy today."
+        ],
+        "family": "/j/ spelt g family",
+        "trickyPart": "g",
+        "wrongVersions": [
+          "enerjy",
+          "energey"
+        ]
+      },
+      "giraffe": {
+        "chunks": [
+          "gi",
+          "raffe"
+        ],
+        "sentences": [
+          "The giraffe has a long neck.",
+          "We saw a giraffe at the zoo.",
+          "The giraffe ate leaves from the tree."
+        ],
+        "family": "/j/ spelt g family",
+        "trickyPart": "g",
+        "wrongVersions": [
+          "jiraffe",
+          "giraff"
+        ]
+      },
+      "every": {
+        "chunks": [
+          "e",
+          "very"
+        ],
+        "sentences": [
+          "I brush my teeth every day.",
+          "Every child got a prize.",
+          "She smiled every time."
+        ],
+        "family": "every word family (tricky word)",
+        "trickyPart": "e",
+        "wrongVersions": [
+          "evry",
+          "evary"
+        ]
+      },
+      "everybody": {
+        "chunks": [
+          "every",
+          "body"
+        ],
+        "sentences": [
+          "Everybody clapped at the end.",
+          "Everybody was happy.",
+          "Everybody sat down quietly."
+        ],
+        "family": "every word family (tricky word)",
+        "trickyPart": "body",
+        "wrongVersions": [
+          "everybudy",
+          "everbody"
+        ]
+      }
+    },
+    "testMistakes": []
+  }
+}

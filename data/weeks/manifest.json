@@ -1,5 +1,5 @@
 {
-  "currentWeekId": "2026-09-15",
+  "currentWeekId": "2026-09-22",
   "weeksPerShard": 5,
   "weeks": [
     {
@@ -519,6 +519,24 @@
         "gold",
         "hold",
         "told"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-09-22",
+      "label": "Week 31",
+      "shard": "shard-007.json",
+      "words": [
+        "gem",
+        "germ",
+        "magic",
+        "danger",
+        "ginger",
+        "digest",
+        "energy",
+        "giraffe",
+        "every",
+        "everybody"
       ],
       "testMistakes": []
     }
