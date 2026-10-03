@@ -189,5 +189,195 @@
       }
     },
     "testMistakes": []
+  },
+  "2026-09-29": {
+    "weekId": "2026-09-29",
+    "label": "Week 32",
+    "theme": "/j/ spelt dge and ge",
+    "words": [
+      "edge",
+      "dodge",
+      "bridge",
+      "hedge",
+      "wedge",
+      "large",
+      "charge",
+      "hinge",
+      "fudge",
+      "even"
+    ],
+    "wordData": {
+      "edge": {
+        "chunks": [
+          "e",
+          "dge"
+        ],
+        "sentences": [
+          "Do not stand too near the edge.",
+          "The cup is at the edge of the table.",
+          "We walked to the edge of the pond."
+        ],
+        "family": "/j/ spelt dge family",
+        "trickyPart": "dge",
+        "wrongVersions": [
+          "edje",
+          "ege"
+        ]
+      },
+      "dodge": {
+        "chunks": [
+          "do",
+          "dge"
+        ],
+        "sentences": [
+          "I can dodge the ball.",
+          "She had to dodge a big puddle.",
+          "Dodge the water as it splashes!"
+        ],
+        "family": "/j/ spelt dge family",
+        "trickyPart": "dge",
+        "wrongVersions": [
+          "dodje",
+          "dodj"
+        ]
+      },
+      "bridge": {
+        "chunks": [
+          "bri",
+          "dge"
+        ],
+        "sentences": [
+          "We walked across the bridge.",
+          "The bridge goes over the river.",
+          "A big bridge joins the two towns."
+        ],
+        "family": "/j/ spelt dge family",
+        "trickyPart": "dge",
+        "wrongVersions": [
+          "bridje",
+          "brij"
+        ]
+      },
+      "hedge": {
+        "chunks": [
+          "he",
+          "dge"
+        ],
+        "sentences": [
+          "A little bird hid in the hedge.",
+          "Dad cut the hedge in the garden.",
+          "The hedge is tall and green."
+        ],
+        "family": "/j/ spelt dge family",
+        "trickyPart": "dge",
+        "wrongVersions": [
+          "hedje",
+          "hedj"
+        ]
+      },
+      "wedge": {
+        "chunks": [
+          "we",
+          "dge"
+        ],
+        "sentences": [
+          "I ate a wedge of cheese.",
+          "He put a wedge under the door.",
+          "She cut a wedge of cake."
+        ],
+        "family": "/j/ spelt dge family",
+        "trickyPart": "dge",
+        "wrongVersions": [
+          "wedje",
+          "wedj"
+        ]
+      },
+      "large": {
+        "chunks": [
+          "lar",
+          "ge"
+        ],
+        "sentences": [
+          "The elephant is very large.",
+          "I would like a large pizza.",
+          "A large box sat by the door."
+        ],
+        "family": "/j/ spelt ge family",
+        "trickyPart": "ge",
+        "wrongVersions": [
+          "larje",
+          "larj"
+        ]
+      },
+      "charge": {
+        "chunks": [
+          "char",
+          "ge"
+        ],
+        "sentences": [
+          "I plug my tablet in to charge.",
+          "Who is in charge of the class?",
+          "The bull began to charge across the field."
+        ],
+        "family": "/j/ spelt ge family",
+        "trickyPart": "ge",
+        "wrongVersions": [
+          "charje",
+          "charj"
+        ]
+      },
+      "hinge": {
+        "chunks": [
+          "hin",
+          "ge"
+        ],
+        "sentences": [
+          "The door hinge is squeaky.",
+          "A hinge lets the gate swing open.",
+          "Dad oiled the hinge on the lid."
+        ],
+        "family": "/j/ spelt ge family",
+        "trickyPart": "ge",
+        "wrongVersions": [
+          "hinje",
+          "hinj"
+        ]
+      },
+      "fudge": {
+        "chunks": [
+          "fu",
+          "dge"
+        ],
+        "sentences": [
+          "I ate a piece of fudge.",
+          "Fudge is sweet and chewy.",
+          "Mum made chocolate fudge."
+        ],
+        "family": "/j/ spelt dge family",
+        "trickyPart": "dge",
+        "wrongVersions": [
+          "fudje",
+          "fuj"
+        ]
+      },
+      "even": {
+        "chunks": [
+          "e",
+          "ven"
+        ],
+        "sentences": [
+          "Two is an even number.",
+          "It was even bigger than I thought.",
+          "She is even faster than me."
+        ],
+        "family": "even word family (tricky word)",
+        "trickyPart": "e",
+        "wrongVersions": [
+          "eeven",
+          "evan"
+        ]
+      }
+    },
+    "testMistakes": []
   }
 }

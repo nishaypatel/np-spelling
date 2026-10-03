@@ -1,5 +1,5 @@
 {
-  "currentWeekId": "2026-09-22",
+  "currentWeekId": "2026-09-29",
   "weeksPerShard": 5,
   "weeks": [
     {
@@ -537,6 +537,24 @@
         "giraffe",
         "every",
         "everybody"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-09-29",
+      "label": "Week 32",
+      "shard": "shard-007.json",
+      "words": [
+        "edge",
+        "dodge",
+        "bridge",
+        "hedge",
+        "wedge",
+        "large",
+        "charge",
+        "hinge",
+        "fudge",
+        "even"
       ],
       "testMistakes": []
     }
