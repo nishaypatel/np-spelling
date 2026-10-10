@@ -1,5 +1,5 @@
 {
-  "currentWeekId": "2026-09-29",
+  "currentWeekId": "2026-10-06",
   "weeksPerShard": 5,
   "weeks": [
     {
@@ -555,6 +555,24 @@
         "hinge",
         "fudge",
         "even"
+      ],
+      "testMistakes": []
+    },
+    {
+      "weekId": "2026-10-06",
+      "label": "Week 33",
+      "shard": "shard-007.json",
+      "words": [
+        "write",
+        "written",
+        "wrote",
+        "wrong",
+        "thumb",
+        "lamb",
+        "numb",
+        "great",
+        "break",
+        "steak"
       ],
       "testMistakes": []
     }

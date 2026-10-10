@@ -379,5 +379,196 @@
       }
     },
     "testMistakes": []
+  },
+  "2026-10-06": {
+    "weekId": "2026-10-06",
+    "label": "Week 33",
+    "theme": "Ghostly graphemes: silent w (wr) and silent b (mb)",
+    "words": [
+      "write",
+      "written",
+      "wrote",
+      "wrong",
+      "thumb",
+      "lamb",
+      "numb",
+      "great",
+      "break",
+      "steak"
+    ],
+    "wordData": {
+      "write": {
+        "chunks": [
+          "wr",
+          "ite"
+        ],
+        "sentences": [
+          "I like to write stories.",
+          "Please write your name at the top.",
+          "Can you write the word on the board?"
+        ],
+        "family": "silent w (wr) family",
+        "trickyPart": "wr",
+        "wrongVersions": [
+          "rite",
+          "wryte"
+        ]
+      },
+      "written": {
+        "chunks": [
+          "wr",
+          "itt",
+          "en"
+        ],
+        "sentences": [
+          "The note was written in pencil.",
+          "Her name is written on the cup.",
+          "Have you written your letter yet?"
+        ],
+        "family": "silent w (wr) family",
+        "trickyPart": "wr",
+        "wrongVersions": [
+          "ritten",
+          "writen"
+        ]
+      },
+      "wrote": {
+        "chunks": [
+          "wr",
+          "ote"
+        ],
+        "sentences": [
+          "She wrote a card for her friend.",
+          "I wrote my name on the page.",
+          "Dad wrote a list for the shop."
+        ],
+        "family": "silent w (wr) family",
+        "trickyPart": "wr",
+        "wrongVersions": [
+          "rote",
+          "wroat"
+        ]
+      },
+      "wrong": {
+        "chunks": [
+          "wr",
+          "ong"
+        ],
+        "sentences": [
+          "That answer is wrong.",
+          "I took the wrong turn.",
+          "Oops, I put the wrong word."
+        ],
+        "family": "silent w (wr) family",
+        "trickyPart": "wr",
+        "wrongVersions": [
+          "rong",
+          "wrang"
+        ]
+      },
+      "thumb": {
+        "chunks": [
+          "thu",
+          "mb"
+        ],
+        "sentences": [
+          "I hurt my thumb in the door.",
+          "The baby sucked her thumb.",
+          "She held up her thumb."
+        ],
+        "family": "silent b (mb) family",
+        "trickyPart": "mb",
+        "wrongVersions": [
+          "thum",
+          "thumm"
+        ]
+      },
+      "lamb": {
+        "chunks": [
+          "la",
+          "mb"
+        ],
+        "sentences": [
+          "The lamb ran across the field.",
+          "A baby sheep is called a lamb.",
+          "We saw a little lamb on the farm."
+        ],
+        "family": "silent b (mb) family",
+        "trickyPart": "mb",
+        "wrongVersions": [
+          "lam",
+          "lamm"
+        ]
+      },
+      "numb": {
+        "chunks": [
+          "nu",
+          "mb"
+        ],
+        "sentences": [
+          "My fingers went numb in the cold.",
+          "The snow made my toes numb.",
+          "His foot felt numb after he sat on it."
+        ],
+        "family": "silent b (mb) family",
+        "trickyPart": "mb",
+        "wrongVersions": [
+          "num",
+          "numm"
+        ]
+      },
+      "great": {
+        "chunks": [
+          "gr",
+          "eat"
+        ],
+        "sentences": [
+          "We had a great day at the park.",
+          "That is a great drawing.",
+          "She did a great job."
+        ],
+        "family": "ea saying /ai/ family (tricky word)",
+        "trickyPart": "ea",
+        "wrongVersions": [
+          "grate",
+          "grait"
+        ]
+      },
+      "break": {
+        "chunks": [
+          "br",
+          "eak"
+        ],
+        "sentences": [
+          "Please do not break the plate.",
+          "We have a break at eleven o'clock.",
+          "Take a break and have a drink."
+        ],
+        "family": "ea saying /ai/ family (tricky word)",
+        "trickyPart": "ea",
+        "wrongVersions": [
+          "brake",
+          "braik"
+        ]
+      },
+      "steak": {
+        "chunks": [
+          "st",
+          "eak"
+        ],
+        "sentences": [
+          "Dad cooked steak for dinner.",
+          "I cut my steak into pieces.",
+          "The steak was hot and juicy."
+        ],
+        "family": "ea saying /ai/ family (tricky word)",
+        "trickyPart": "ea",
+        "wrongVersions": [
+          "stake",
+          "staik"
+        ]
+      }
+    },
+    "testMistakes": []
   }
 }
