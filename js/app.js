@@ -167,6 +167,7 @@ function normaliseSettings(raw = {}) {
 }
 
 async function saveSettings(partial) {
+  if (STATE.user?.uid.startsWith('guest_')) return;
   STATE.settings = normaliseSettings({ ...STATE.settings, ...partial });
   applyTheme(STATE.settings.theme);
   if (!STATE.familyId) return;
@@ -202,6 +203,7 @@ async function loadStats() {
 }
 
 async function saveStats() {
+  if (STATE.user?.uid.startsWith('guest_')) return;
   if (!STATE.familyId) return;
   try {
     await db.collection('families').doc(STATE.familyId).collection('settings').doc('stats').set(STATE.stats, { merge: true });
@@ -389,6 +391,7 @@ async function refreshActivePool() {
 function wordSlotCount() { return Math.max(WORDS_PER_WEEK, STATE.words.length + 1); }
 
 async function saveWeeklyWords(words) {
+  if (STATE.user?.uid.startsWith('guest_')) return;
   // Capitals are kept: some words are proper nouns (July, Tuesday, August).
   const cleanWords = words.map(w => w.trim()).filter(Boolean).slice(0, MAX_WORDS_PER_WEEK);
   if (cleanWords.length < MIN_WORDS_PER_WEEK) { showToast(`Please enter at least ${MIN_WORDS_PER_WEEK} words.`); return false; }
@@ -406,6 +409,7 @@ async function saveWeeklyWords(words) {
 }
 
 async function saveTestMistakes(mistakes) {
+  if (STATE.user?.uid.startsWith('guest_')) return;
   STATE.testMistakes = mistakes.filter(w => STATE.words.includes(w));
   if (!STATE.familyId) return;
   try {
@@ -434,6 +438,7 @@ async function loadAllWeeksMistakes() {
 }
 
 async function saveWeekMistakes(weekId, mistakes) {
+  if (STATE.user?.uid.startsWith('guest_')) return;
   if (weekId === STATE.currentWeekId) STATE.testMistakes = mistakes.filter(w => STATE.words.includes(w));
   if (!STATE.familyId) return;
   try {
@@ -468,6 +473,7 @@ async function renderTestHistory() {
 }
 
 async function saveResult(word, activity, correct) {
+  if (STATE.user?.uid.startsWith('guest_')) return;
   const result = { word, activity, correct, timestamp: Date.now() };
   STATE.results.push(result);
   try {
@@ -910,10 +916,11 @@ async function checkSpellingAccess(user, email) {
     console.warn('checkSpellingAccess: grant unreadable, using the family list', e?.code || e);
     return FAMILY_MAP[email] ? 'ok' : 'denied';
   }
-  return FAMILY_MAP[email] ? 'ok' : 'no-family';
+  return (user.uid.startsWith('guest_') || FAMILY_MAP[email]) ? 'ok' : 'no-family';
 }
 
 auth.onAuthStateChanged(async user => {
+    window.watchGuestSession?.(user, 'spelling');
   if (user) {
     const email = String(user.email || '').toLowerCase();
     const access = await checkSpellingAccess(user, email);
@@ -926,7 +933,7 @@ auth.onAuthStateChanged(async user => {
       return;
     }
     STATE.user = user;
-    STATE.familyId = FAMILY_MAP[email];
+    STATE.familyId = user.uid.startsWith('guest_') ? 'patel-family' : FAMILY_MAP[email];
     // Independent reads: in parallel, not three round trips in turn.
     await Promise.all([loadSettings(), loadStats(), loadCurrentWeek()]);
     STATE.activePool = { words: STATE.words, wordData: STATE.wordData }; // cheap default; refreshActivePool() runs the real resolution when Practice opens

@@ -1,9 +1,9 @@
 // Shared sign-in check for the apps served through personal-apps-home.
 //
 // Every app on that domain signs in to the same Firebase project and is granted
-// per app in Firestore appAccess/{uid}. This is the CommonJS copy of the file
-// kept byte-identical in daily, fuel-prices and np-rtt-train: only the import
-// and export lines differ, so copy fixes across rather than re-deriving them.
+// per app in Firestore appAccess/{uid}. Keep this file byte-identical in
+// daily, fuel-prices and np-rtt-train (np-spelling carries a CommonJS copy of
+// the same logic), so a fix made in one is copied rather than re-derived.
 //
 // Verifying costs two round trips to Google (the ID-token lookup and the grant
 // read). A successful result is remembered for at most a minute — never past
@@ -82,10 +82,12 @@ async function verifySharedFirebaseUser(req, requiredApp) {
   );
   const user = account.payload.users?.[0];
   if (account.response.status >= 500) throw httpError('access_check_unavailable', 503);
-  if (!account.response.ok || !user?.localId || !user?.email || user.emailVerified !== true) {
+  const guest = user?.localId?.startsWith('guest_') === true;
+  if (!account.response.ok || !user?.localId || (!guest && (!user?.email || user.emailVerified !== true))) {
     throw httpError('invalid_token', 401);
   }
 
+  if (guest && (!requiredApp || (!['GET', 'HEAD'].includes(req.method || 'GET') && !(requiredApp === 'spelling' && req.method === 'POST' && /(?:^|\/)tts(?:\?|$)/.test(req.url || ''))))) throw httpError('app_access_denied', 403);
   if (requiredApp) {
     const grant = await lookup(
       `https://firestore.googleapis.com/v1/projects/${SHARED_FIREBASE_PROJECT}/databases/(default)/documents/appAccess/${encodeURIComponent(user.localId)}`,
@@ -99,7 +101,7 @@ async function verifySharedFirebaseUser(req, requiredApp) {
   }
 
   const result = { uid: user.localId, email: user.email };
-  remember(key, result, idToken);
+  if (!guest) remember(key, result, idToken); // Guest expiry/revocation is checked on every request.
   return { ...result };
 }
 
